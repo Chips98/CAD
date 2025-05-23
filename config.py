@@ -18,8 +18,3 @@ ENABLE_SUPERVISION = True              # 是否启用AI督导功能
 SUPERVISION_INTERVAL = 5               # 督导间隔（每N轮对话触发一次督导）
 SUPERVISION_ANALYSIS_DEPTH = "COMPREHENSIVE"  # 督导分析深度：BASIC, STANDARD, COMPREHENSIVE
 
-# 尝试导入本地配置（如果存在）
-try:
-    from config_local import *
-except ImportError:
-    pass
