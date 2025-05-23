@@ -2,11 +2,13 @@ import asyncio
 import json
 import random
 from datetime import datetime, timedelta
-from typing import Dict, List, Any, Optional, Tuple
+from typing import Dict, List, Any, Optional, Tuple, Union
 import logging
 from pathlib import Path
 
+from core.ai_client_factory import ai_client_factory
 from core.gemini_client import GeminiClient
+from core.deepseek_client import DeepSeekClient
 from models.psychology_models import (
     LifeEvent, EventType, PsychologicalState, EmotionState, 
     DepressionLevel, Relationship
@@ -19,8 +21,9 @@ from agents.school_agents import TeacherAgent, ClassmateAgent, BullyAgent, BestF
 class SimulationEngine:
     """心理健康模拟引擎"""
     
-    def __init__(self, gemini_client: GeminiClient, simulation_id: str):
-        self.gemini_client = gemini_client
+    def __init__(self, simulation_id: str, model_provider: str = None):
+        self.ai_client = ai_client_factory.get_client(model_provider)
+        self.model_provider = model_provider or getattr(__import__('config'), 'DEFAULT_MODEL_PROVIDER', 'gemini')
         self.simulation_id = simulation_id
         self.simulation_log_dir = Path("logs") / self.simulation_id
         self.simulation_log_dir.mkdir(parents=True, exist_ok=True)
@@ -35,6 +38,7 @@ class SimulationEngine:
         self.current_stage = 0
         self.logger = logging.getLogger(__name__)
         self.logger.info(f"SimulationEngine initialized for simulation ID: {self.simulation_id}")
+        self.logger.info(f"Using AI model provider: {self.model_provider}")
         self.logger.info(f"Output directory set to: {self.simulation_log_dir}")
         
     def setup_simulation(self):
@@ -50,7 +54,7 @@ class SimulationEngine:
                 "agreeableness": 7,
                 "neuroticism": 6
             },
-            gemini_client=self.gemini_client
+            ai_client=self.ai_client
         )
         self.agents["李明"] = self.protagonist
         
@@ -65,7 +69,7 @@ class SimulationEngine:
                 "work_pressure": 7,
                 "communication_style": "直接但缺乏情感表达"
             },
-            gemini_client=self.gemini_client
+            ai_client=self.ai_client
         )
         self.agents["李建国"] = father
         
@@ -80,7 +84,7 @@ class SimulationEngine:
                 "anxiety_level": 8,
                 "nurturing_instinct": 9
             },
-            gemini_client=self.gemini_client
+            ai_client=self.ai_client
         )
         self.agents["王秀芳"] = mother
         
@@ -94,7 +98,7 @@ class SimulationEngine:
                 "empathy": 4,
                 "expectations": "高"
             },
-            gemini_client=self.gemini_client,
+            ai_client=self.ai_client,
             subject="数学"
         )
         self.agents["张老师"] = math_teacher
@@ -108,7 +112,7 @@ class SimulationEngine:
                 "support_ability": 8,
                 "shared_interests": ["篮球", "游戏", "学习"]
             },
-            gemini_client=self.gemini_client
+            ai_client=self.ai_client
         )
         self.agents["王小明"] = best_friend
         
@@ -121,7 +125,7 @@ class SimulationEngine:
                 "control_need": 9,
                 "popularity": 6
             },
-            gemini_client=self.gemini_client
+            ai_client=self.ai_client
         )
         self.agents["刘强"] = bully
         
@@ -134,7 +138,7 @@ class SimulationEngine:
                 "popularity": 7,
                 "academic_performance": 9
             },
-            gemini_client=self.gemini_client,
+            ai_client=self.ai_client,
             relationship_with_protagonist="竞争对手"
         )
         self.agents["陈优秀"] = competitor
@@ -340,7 +344,7 @@ class SimulationEngine:
                 responses[agent_name] = response
                 self.logger.info(f"{agent_name} 回应: {response}")
         
-        impact_analysis = await self.gemini_client.analyze_interaction_impact(
+        impact_analysis = await self.ai_client.analyze_interaction_impact(
             event_description, participants
         )
         
@@ -466,7 +470,7 @@ class SimulationEngine:
         
         self.logger.info("正在生成AI分析总结...")
         try:
-            ai_analysis = await self.gemini_client.generate_response(prompt)
+            ai_analysis = await self.ai_client.generate_response(prompt)
             report["ai_analysis"] = ai_analysis
             self.logger.info("AI分析总结已生成。")
         except Exception as e:

@@ -1,22 +1,21 @@
 from abc import ABC, abstractmethod
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Optional, Any, Union
 import asyncio
 from datetime import datetime
 import uuid
 
 from models.psychology_models import PsychologicalState, LifeEvent, Relationship, EmotionState, DepressionLevel
-from core.gemini_client import GeminiClient
 
 class BaseAgent(ABC):
     """Agent基类"""
     
     def __init__(self, name: str, age: int, personality: Dict[str, Any], 
-                 gemini_client: GeminiClient):
+                 ai_client: Union['GeminiClient', 'DeepSeekClient']):
         self.id = str(uuid.uuid4())
         self.name = name
         self.age = age
         self.personality = personality
-        self.gemini_client = gemini_client
+        self.ai_client = ai_client
         
         # 心理状态初始化
         self.psychological_state = PsychologicalState(
@@ -74,7 +73,7 @@ class BaseAgent(ABC):
                   for item in self.dialogue_history[-5:]]
         
         # 生成回应
-        response = await self.gemini_client.generate_agent_response(
+        response = await self.ai_client.generate_agent_response(
             profile, situation, history
         )
         
@@ -109,7 +108,7 @@ class BaseAgent(ABC):
         用第一人称写作，长度100-300字。
         """
         
-        thought = await self.gemini_client.generate_response(prompt)
+        thought = await self.ai_client.generate_response(prompt)
         self.thoughts.append(f"[{datetime.now().strftime('%H:%M')}] {thought}")
         
         return thought

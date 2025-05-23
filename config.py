@@ -1,10 +1,18 @@
 # 配置文件
 # 请将你的API密钥填入下方或创建config_local.py文件
 
-GEMINI_API_KEY = "your_gemini_api_key_here"
+GEMINI_API_KEY = ""
+
+# DeepSeek API配置
+DEEPSEEK_API_KEY = ""  # 请填入您的DeepSeek API密钥
+DEEPSEEK_BASE_URL = "https://api.deepseek.com"  # DeepSeek API基础URL
+
+# 模型选择配置
+DEFAULT_MODEL_PROVIDER = "deepseek"  # 可选: "gemini", "deepseek"
+DEEPSEEK_MODEL = "deepseek-chat"  # DeepSeek模型名称
 
 # 模拟参数
-SIMULATION_SPEED = 1                    # 模拟速度（秒），控制30天模拟的执行间隔
+SIMULATION_SPEED = 0                    # 模拟速度（秒），控制30天模拟的执行间隔
 LOG_LEVEL = "INFO"                     # 日志级别：DEBUG, INFO, WARNING, ERROR
 DEPRESSION_DEVELOPMENT_STAGES = 5       # 抑郁发展阶段数（影响心理状态层次性）
 INTERACTION_FREQUENCY = 3              # 交互频率（影响事件生成密度）

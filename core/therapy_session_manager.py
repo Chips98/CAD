@@ -7,9 +7,8 @@ from rich.console import Console
 from rich.panel import Panel
 import asyncio 
 from datetime import datetime 
-from typing import Optional
+from typing import Optional, Union
 
-from core.gemini_client import GeminiClient 
 from agents.therapist_agent import TherapistAgent 
 import config
 
@@ -25,12 +24,12 @@ class TherapySessionManager:
     负责加载患者数据、生成回应、管理对话历史等。
     """
     def __init__(self, 
-                 gemini_client: GeminiClient, 
+                 ai_client: Union['GeminiClient', 'DeepSeekClient'], 
                  therapist_agent: TherapistAgent = None, 
                  conversation_history_length: int = None, # 默认从config读取
                  max_events_to_show: int = None): # 默认从config读取
-        self.gemini_client = gemini_client
-        self.therapist_agent = therapist_agent if therapist_agent else TherapistAgent("专业心理督导", gemini_client)
+        self.ai_client = ai_client
+        self.therapist_agent = therapist_agent if therapist_agent else TherapistAgent("专业心理督导", ai_client)
         self.patient_data = None
         self.conversation_history = []
         
@@ -633,7 +632,7 @@ class TherapySessionManager:
             return f"（系统提示：{prompt}）"
             
         try:
-            response = await self.gemini_client.generate_response(prompt)
+            response = await self.ai_client.generate_response(prompt)
             return response.strip()
         except Exception as e:
             console.print(f"[red]生成患者回应时出错: {e}[/red]")
@@ -809,7 +808,7 @@ if __name__ == '__main__':
             test_max_events = 4
             
             console.print(f"[cyan]测试 TherapySessionManager (history_length={test_history_length}, max_events={test_max_events})...[/cyan]")
-            manager = TherapySessionManager(gemini_client=gemini_client, 
+            manager = TherapySessionManager(ai_client=gemini_client, 
                                           # therapist_agent=therapist_agent, # 可选
                                           conversation_history_length=test_history_length,
                                           max_events_to_show=test_max_events)
@@ -822,7 +821,7 @@ if __name__ == '__main__':
                 "simulation_summary": {"total_days": 30, "final_stage": "抑郁发展", "final_depression_level": "SEVERE", "total_events": 150},
                 "protagonist_journey": {"initial_state": "健康", "final_state": "抑郁, 压力9/10, 自尊0/10", "key_symptoms": ["情绪低落", "失眠", "食欲差"], "risk_factors": ["霸凌", "孤立", "学业压力"]},
                 "significant_events": [{"description": f"事件{i}", "impact_score": -i} for i in range(1, test_max_events + 3)], 
-                "ai_analysis": "这是一个AI对整个模拟过程的分析总结...非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常长的一段文本，用于测试摘要功能。" * 10
+                "ai_analysis": "这是一个AI对整个模拟过程的分析总结...非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常长的一段文本，用于测试摘要功能。" * 10
             }
             with open(sample_final_report_path, "w", encoding="utf-8") as f:
                 json.dump(sample_final_report_content, f, ensure_ascii=False, indent=2)

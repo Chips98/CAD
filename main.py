@@ -19,7 +19,7 @@ console = Console()
 
 sys.path.append(str(Path(__file__).resolve().parent))
 
-from core.gemini_client import GeminiClient
+from core.ai_client_factory import ai_client_factory
 from core.simulation_engine import SimulationEngine
 from core.therapy_session_manager import TherapySessionManager
 
@@ -28,6 +28,11 @@ logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
+# 设置第三方库的日志级别，隐藏HTTP请求信息
+logging.getLogger('httpx').setLevel(logging.WARNING)
+logging.getLogger('openai').setLevel(logging.WARNING)
+logging.getLogger('urllib3').setLevel(logging.WARNING)
+logging.getLogger('httpcore').setLevel(logging.WARNING)
 
 if not any(isinstance(h, logging.StreamHandler) for h in logger.handlers):
     stream_handler = logging.StreamHandler()
@@ -72,8 +77,19 @@ def load_config():
         import config
         history_length = getattr(config, 'CONVERSATION_HISTORY_LENGTH', 5)
         max_events = getattr(config, 'MAX_EVENTS_TO_SHOW', 5)
+        
+        # 检查可用的AI提供商
+        available_providers = ai_client_factory.get_available_providers()
+        default_provider = getattr(config, 'DEFAULT_MODEL_PROVIDER', 'gemini')
+        
+        if not available_providers:
+            console.print("[red]错误: 未配置任何AI提供商的API密钥[/red]")
+            console.print("[yellow]请在config.py中配置GEMINI_API_KEY或DEEPSEEK_API_KEY[/yellow]")
+            return None
+        
         return {
-            'api_key': config.GEMINI_API_KEY,
+            'available_providers': available_providers,
+            'default_provider': default_provider,
             'simulation_speed': getattr(config, 'SIMULATION_SPEED', 1),
             'depression_stages': getattr(config, 'DEPRESSION_DEVELOPMENT_STAGES', 5),
             'conversation_history_length': history_length,
@@ -85,6 +101,44 @@ def load_config():
     except AttributeError as e:
         console.print(f"[red]错误: config.py 文件缺少必要的属性: {e}。请检查或使用config_example.py更新。[/red]")
         return None
+
+def select_ai_provider(available_providers: list, default_provider: str) -> str:
+    """选择AI提供商"""
+    if len(available_providers) == 1:
+        console.print(f"[info]使用唯一可用的AI提供商: {available_providers[0]}[/info]")
+        return available_providers[0]
+    
+    console.print(Panel("[bold blue]选择AI模型提供商[/bold blue]"))
+    provider_table = Table()
+    provider_table.add_column("编号", style="cyan", no_wrap=True)
+    provider_table.add_column("提供商", style="green")
+    provider_table.add_column("状态", style="yellow")
+    
+    for i, provider in enumerate(available_providers, 1):
+        status = "默认" if provider == default_provider else "可用"
+        provider_table.add_row(str(i), provider.upper(), status)
+    
+    console.print(provider_table)
+    
+    while True:
+        try:
+            choice = console.input(f"[cyan]请选择AI提供商 (1-{len(available_providers)}) 或回车使用默认: [/cyan]").strip()
+            
+            if not choice:  # 使用默认
+                return default_provider
+            
+            choice_idx = int(choice) - 1
+            if 0 <= choice_idx < len(available_providers):
+                selected_provider = available_providers[choice_idx]
+                console.print(f"[green]已选择: {selected_provider.upper()}[/green]")
+                return selected_provider
+            else:
+                console.print("[red]无效选择，请重新输入[/red]")
+        except ValueError:
+            console.print("[red]请输入有效的数字[/red]")
+        except KeyboardInterrupt:
+            console.print("\n[yellow]使用默认提供商[/yellow]")
+            return default_provider
 
 def create_base_logs_directory():
     """创建基础的logs目录，如果它不存在。"""
@@ -245,12 +299,15 @@ async def main():
     if not config_data:
         return
     
-    if not config_data['api_key'] or config_data['api_key'] == "your_gemini_api_key_here":
-        console.print("[red]错误: 请在config.py中设置有效的Gemini API密钥[/red]")
-        return
+    # 选择AI提供商
+    selected_provider = select_ai_provider(
+        config_data['available_providers'], 
+        config_data['default_provider']
+    )
     
     try:
-        gemini_client = GeminiClient(config_data['api_key'])
+        # 获取AI客户端
+        ai_client = ai_client_factory.get_client(selected_provider)
         manager_config = {
             "conversation_history_length": config_data.get('conversation_history_length'),
             "max_events_to_show": config_data.get('max_events_to_show')
@@ -272,9 +329,8 @@ async def main():
                     setup_simulation_logging(simulation_id)
                     
                     console.print("🎭 正在设置模拟环境...")
-                    # 将 simulation_id (或完整路径) 传递给 SimulationEngine
-                    # 假设 SimulationEngine 的 __init__ 或 setup_simulation 接受 simulation_log_dir 参数
-                    engine = SimulationEngine(gemini_client, simulation_id=simulation_id) 
+                    # 使用选定的AI提供商创建模拟引擎
+                    engine = SimulationEngine(simulation_id=simulation_id, model_provider=selected_provider)
                     engine.setup_simulation() 
                     display_simulation_info()
                     console.print()
@@ -294,6 +350,7 @@ async def main():
                     console.print()
                     console.print(Panel(
                         f"[bold green]模拟 {simulation_id} 完成！[/bold green]\n\n"
+                        f"使用AI模型: {selected_provider.upper()}\n"
                         f"详细日志: logs/{simulation_id}/simulation.log\n"
                         f"完整报告: {report_path}\n"
                         f"每日状态: logs/{simulation_id}/day_*_state.json\n\n"
@@ -329,7 +386,7 @@ async def main():
                     
                     console.print(f"[info]使用配置: 历史长度={manager_config['conversation_history_length']}, 事件显示={manager_config['max_events_to_show']}[/info]")
                     therapy_manager = TherapySessionManager(
-                        gemini_client=gemini_client,
+                        ai_client=ai_client,
                         conversation_history_length=manager_config['conversation_history_length'],
                         max_events_to_show=manager_config['max_events_to_show']
                     )

@@ -1,14 +1,13 @@
-from typing import Dict, List, Any
+from typing import Dict, List, Any, Union
 from agents.base_agent import BaseAgent
 from models.psychology_models import EmotionState, DepressionLevel
-from core.gemini_client import GeminiClient
 
 class StudentAgent(BaseAgent):
     """学生Agent - 主角，将经历抑郁症发展过程"""
     
     def __init__(self, name: str, age: int, personality: Dict[str, Any], 
-                 gemini_client: GeminiClient):
-        super().__init__(name, age, personality, gemini_client)
+                 ai_client: Union['GeminiClient', 'DeepSeekClient']):
+        super().__init__(name, age, personality, ai_client)
         
         # 学生特有属性
         self.grade = "高二"

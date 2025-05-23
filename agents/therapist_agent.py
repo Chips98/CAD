@@ -1,15 +1,14 @@
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Any, Optional, Union
 import asyncio
 from datetime import datetime
 
 from agents.base_agent import BaseAgent
 from models.psychology_models import PsychologicalState, EmotionState, DepressionLevel
-from core.gemini_client import GeminiClient
 
 class TherapistAgent(BaseAgent):
     """心理医生Agent - 专业心理咨询师"""
     
-    def __init__(self, name: str, gemini_client: GeminiClient):
+    def __init__(self, name: str, ai_client: Union['GeminiClient', 'DeepSeekClient']):
         super().__init__(
             name=name,
             age=35,
@@ -23,7 +22,7 @@ class TherapistAgent(BaseAgent):
                 "active_listening": 9,
                 "professional_boundaries": 8
             },
-            gemini_client=gemini_client
+            ai_client=ai_client
         )
         
         # 治疗记录
@@ -108,7 +107,7 @@ class TherapistAgent(BaseAgent):
         请用专业但易懂的语言回应，帮助用户提高心理咨询技能。
         """
         
-        return await self.gemini_client.generate_response(prompt)
+        return await self.ai_client.generate_response(prompt)
     
     async def _initiate_session(self, patient_state: Dict) -> str:
         """主动开始治疗会话"""
@@ -144,7 +143,7 @@ class TherapistAgent(BaseAgent):
         请为初学者心理咨询师提供清晰的指导。
         """
         
-        return await self.gemini_client.generate_response(prompt)
+        return await self.ai_client.generate_response(prompt)
     
     async def analyze_treatment_progress(self, patient_agent: BaseAgent) -> Dict[str, Any]:
         """分析治疗进展"""
@@ -187,7 +186,7 @@ class TherapistAgent(BaseAgent):
         """
         
         try:
-            response = await self.gemini_client.generate_response(prompt)
+            response = await self.ai_client.generate_response(prompt)
             if "```json" in response:
                 json_str = response.split("```json")[1].split("```")[0].strip()
             else:
@@ -236,7 +235,7 @@ class TherapistAgent(BaseAgent):
         请用鼓励但专业的语言提供建设性反馈。
         """
         
-        return await self.gemini_client.generate_response(prompt)
+        return await self.ai_client.generate_response(prompt)
 
     async def provide_supervision_with_context(self, user_intervention: str, 
                                              patient_response: str,
@@ -307,4 +306,4 @@ class TherapistAgent(BaseAgent):
         请提供具体、实用且鼓励性的专业督导建议。
         """
         
-        return await self.gemini_client.generate_response(prompt) 
+        return await self.ai_client.generate_response(prompt) 

@@ -1,226 +1,228 @@
-from typing import Dict, List, Any
+from typing import Dict, List, Any, Union
 from agents.base_agent import BaseAgent
-from models.psychology_models import EmotionState
-from core.gemini_client import GeminiClient
+from models.psychology_models import EmotionState, DepressionLevel
 
 class TeacherAgent(BaseAgent):
-    """老师Agent"""
+    """教师Agent"""
     
     def __init__(self, name: str, age: int, personality: Dict[str, Any], 
-                 gemini_client: GeminiClient, subject: str):
-        super().__init__(name, age, personality, gemini_client)
+                 ai_client: Union['GeminiClient', 'DeepSeekClient'], subject: str):
+        super().__init__(name, age, personality, ai_client)
         self.subject = subject
-        self.teaching_experience = personality.get("experience_years", 10)
+        self.teaching_experience = personality.get("experience_years", 5)
         self.teaching_style = personality.get("teaching_style", "传统型")
-        self.strictness_level = personality.get("strictness", 6)  # 1-10
+        self.strictness = personality.get("strictness", 5)  # 1-10
         self.empathy_level = personality.get("empathy", 5)  # 1-10
-        self.student_expectations = personality.get("expectations", "高")
+        self.expectations = personality.get("expectations", "中等")  # 低/中等/高
         
     def get_role_description(self) -> str:
         """获取角色描述"""
-        return f"一位教授{self.subject}的老师，{self.teaching_experience}年教学经验，教学风格{self.teaching_style}，对学生要求{self.student_expectations}"
+        return f"一位教授{self.subject}的{self.age}岁教师，教学风格{self.teaching_style}，有{self.teaching_experience}年教学经验"
     
     def get_current_concerns(self) -> List[str]:
         """获取当前关注的问题"""
-        concerns = ["学生的学习成绩", "教学质量", "课堂纪律"]
+        concerns = [f"{self.subject}教学质量", "学生学习进度", "课堂纪律"]
         
-        if self.empathy_level > 7:
-            concerns.insert(0, "学生的心理健康")
+        if self.expectations == "高":
+            concerns.insert(0, "学生成绩提升")
         
-        if self.strictness_level > 7:
-            concerns.append("学生的行为规范")
+        if self.empathy_level > 6:
+            concerns.append("学生心理状态")
         
-        concerns.append("教学任务完成情况")
-        
-        return concerns
+        if self.strictness > 7:
+            concerns.append("学生行为规范")
+            
+        return concerns[:4]
     
-    async def respond_to_student_performance(self, student_name: str, 
-                                           performance: str, score: int) -> str:
-        """对学生表现的回应"""
-        if score < 60:  # 不及格
-            if self.teaching_style == "严厉型":
-                situation = f"{student_name}{performance}，成绩{score}分，我需要严厉批评"
-            elif self.empathy_level > 6:
-                situation = f"{student_name}{performance}，成绩{score}分，我担心他的学习状况"
+    async def give_feedback_on_performance(self, student_performance: str,
+                                         recent_grades: List[int]) -> str:
+        """对学生表现给出反馈"""
+        avg_grade = sum(recent_grades) / len(recent_grades) if recent_grades else 0
+        
+        if self.strictness > 6:
+            if avg_grade < 70:
+                situation = f"学生{student_performance}，最近平均成绩{avg_grade:.1f}，我觉得需要严格要求"
             else:
-                situation = f"{student_name}{performance}，成绩{score}分，需要改进"
-        elif score >= 90:  # 优秀
-            situation = f"{student_name}{performance}，成绩{score}分，值得表扬"
-        else:  # 一般
-            situation = f"{student_name}{performance}，成绩{score}分，还有提升空间"
-            
-        return await self.respond_to_situation(situation)
-    
-    async def handle_student_problem(self, student_name: str, 
-                                   problem_description: str) -> str:
-        """处理学生问题"""
-        if self.empathy_level > 7:
-            situation = f"{student_name}遇到{problem_description}，我想耐心帮助他解决"
-        elif self.strictness_level > 7:
-            situation = f"{student_name}出现{problem_description}，需要严格处理"
+                situation = f"学生{student_performance}，成绩{avg_grade:.1f}还可以，但要保持"
         else:
-            situation = f"{student_name}的{problem_description}需要处理"
+            situation = f"学生{student_performance}，我想给出建设性的反馈"
             
         return await self.respond_to_situation(situation)
     
-    def notice_student_change(self, student_name: str, changes: List[str]) -> bool:
+    async def handle_classroom_situation(self, situation_type: str, 
+                                       student_behavior: str) -> str:
+        """处理课堂情况"""
+        if self.strictness > 7:
+            situation = f"课堂上{situation_type}，学生{student_behavior}，我认为需要立即纠正"
+        elif self.empathy_level > 6:
+            situation = f"课堂上{situation_type}，学生{student_behavior}，我想了解背后的原因"
+        else:
+            situation = f"课堂上{situation_type}，学生{student_behavior}，我按照常规处理"
+            
+        return await self.respond_to_situation(situation)
+    
+    async def notice_student_change(self, student_name: str, 
+                                  behavioral_change: str) -> str:
         """注意到学生变化"""
-        # 有经验且共情能力强的老师更容易注意到学生变化
-        sensitivity = (self.empathy_level + self.teaching_experience / 2) / 10
-        return len(changes) > (3 - sensitivity * 2)
-
+        if self.empathy_level > 6:
+            situation = f"注意到{student_name}{behavioral_change}，我担心他的状况"
+        elif self.strictness > 6:
+            situation = f"注意到{student_name}{behavioral_change}，可能影响学习"
+        else:
+            situation = f"注意到{student_name}{behavioral_change}"
+            
+        return await self.respond_to_situation(situation)
 
 class ClassmateAgent(BaseAgent):
     """同学Agent"""
     
     def __init__(self, name: str, age: int, personality: Dict[str, Any], 
-                 gemini_client: GeminiClient, relationship_with_protagonist: str):
-        super().__init__(name, age, personality, gemini_client)
-        self.relationship_with_protagonist = relationship_with_protagonist  # "好友", "普通同学", "竞争对手", "霸凌者"
-        self.popularity = personality.get("popularity", 5)  # 人气值 1-10
-        self.academic_competitiveness = personality.get("competitive", 5)
-        self.empathy_towards_others = personality.get("empathy", 5)
-        self.social_influence = personality.get("social_influence", 5)
+                 ai_client: Union['GeminiClient', 'DeepSeekClient'], relationship_with_protagonist: str):
+        super().__init__(name, age, personality, ai_client)
+        self.relationship_with_protagonist = relationship_with_protagonist
+        self.academic_level = personality.get("academic_performance", 6)  # 1-10
+        self.popularity = personality.get("popularity", 5)  # 1-10
+        self.empathy_level = personality.get("empathy", 5)  # 1-10
+        self.competitiveness = personality.get("competitive", 5)  # 1-10
         
     def get_role_description(self) -> str:
         """获取角色描述"""
-        return f"一位{self.age}岁的同学，在班级中{self.get_popularity_level()}，与主角关系：{self.relationship_with_protagonist}"
-    
-    def get_popularity_level(self) -> str:
-        """获取人气水平"""
-        if self.popularity >= 8:
-            return "很受欢迎"
-        elif self.popularity >= 6:
-            return "比较受欢迎"
-        elif self.popularity >= 4:
-            return "普通"
-        else:
-            return "不太受欢迎"
+        return f"一位{self.age}岁的同学，与主角关系为{self.relationship_with_protagonist}，学习成绩{'优秀' if self.academic_level > 7 else '一般'}"
     
     def get_current_concerns(self) -> List[str]:
         """获取当前关注的问题"""
-        concerns = ["学习成绩", "朋友关系", "兴趣爱好"]
+        concerns = ["学习成绩", "同学关系", "课外活动"]
         
-        if self.academic_competitiveness > 7:
+        if self.competitiveness > 6:
             concerns.insert(0, "学习排名")
         
-        if self.popularity > 7:
-            concerns.append("维持人气")
-        elif self.popularity < 4:
-            concerns.append("改善人际关系")
+        if self.popularity > 6:
+            concerns.append("社交活动")
         
-        return concerns
+        if self.empathy_level > 6:
+            concerns.append("朋友的状况")
+            
+        return concerns[:4]
     
-    async def interact_with_protagonist(self, protagonist_mood: EmotionState,
-                                      interaction_context: str) -> str:
+    async def interact_with_protagonist(self, context: str) -> str:
         """与主角互动"""
         if self.relationship_with_protagonist == "好友":
-            if protagonist_mood in [EmotionState.SAD, EmotionState.DEPRESSED]:
-                situation = f"我的好朋友看起来{protagonist_mood.value}，在{interaction_context}的情况下，我想关心一下"
-            else:
-                situation = f"和好朋友在{interaction_context}的情况下交流"
-                
-        elif self.relationship_with_protagonist == "霸凌者":
-            situation = f"在{interaction_context}的情况下，找机会针对主角"
-            
+            situation = f"在{context}的情况下，想和好朋友聊聊"
         elif self.relationship_with_protagonist == "竞争对手":
-            if "学习" in interaction_context or "成绩" in interaction_context:
-                situation = f"在{interaction_context}的情况下，想要显示自己比主角优秀"
+            if self.competitiveness > 6:
+                situation = f"在{context}的情况下，感觉需要展示自己的优势"
             else:
-                situation = f"在{interaction_context}的情况下，与竞争对手的正常交流"
-                
+                situation = f"在{context}的情况下，正常与同学交流"
         else:  # 普通同学
-            situation = f"在{interaction_context}的情况下，与同学的普通交流"
+            situation = f"在{context}的情况下，和同学的日常互动"
             
         return await self.respond_to_situation(situation)
     
-    async def spread_rumor_or_gossip(self, rumor_content: str) -> str:
-        """传播谣言或八卦"""
-        if self.social_influence > 6:
-            situation = f"听到关于{rumor_content}的消息，考虑是否告诉其他人"
-        else:
-            situation = f"听到{rumor_content}的消息，但不确定是否应该传播"
-            
-        return await self.respond_to_situation(situation)
-    
-    def would_help_protagonist(self, protagonist_situation: str) -> bool:
-        """是否愿意帮助主角"""
-        if self.relationship_with_protagonist == "好友":
-            return True
-        elif self.relationship_with_protagonist == "霸凌者":
-            return False
-        elif self.empathy_towards_others > 7:
-            return True
+    async def react_to_protagonist_change(self, observed_change: str) -> str:
+        """对主角变化的反应"""
+        if self.empathy_level > 6:
+            situation = f"注意到同学{observed_change}，我想关心一下"
         elif self.relationship_with_protagonist == "竞争对手":
-            return False
+            situation = f"注意到同学{observed_change}，这可能影响竞争态势"
         else:
-            return self.empathy_towards_others > 5
-
+            situation = f"注意到同学{observed_change}，随便聊聊"
+            
+        return await self.respond_to_situation(situation)
+    
+    async def participate_in_group_activity(self, activity: str, 
+                                          group_members: List[str]) -> str:
+        """参与集体活动"""
+        members_str = "、".join(group_members)
+        situation = f"和{members_str}一起参加{activity}"
+        return await self.respond_to_situation(situation)
 
 class BullyAgent(ClassmateAgent):
-    """霸凌者Agent"""
+    """霸凌者Agent - 继承自ClassmateAgent"""
     
     def __init__(self, name: str, age: int, personality: Dict[str, Any], 
-                 gemini_client: GeminiClient):
-        personality["empathy"] = min(3, personality.get("empathy", 2))  # 低共情
-        super().__init__(name, age, personality, gemini_client, "霸凌者")
-        self.aggression_level = personality.get("aggression", 8)
-        self.insecurity_level = personality.get("insecurity", 7)  # 内心不安全感
-        self.need_for_control = personality.get("control_need", 8)
+                 ai_client: Union['GeminiClient', 'DeepSeekClient']):
+        # 设置为霸凌者关系
+        super().__init__(name, age, personality, ai_client, "霸凌者")
+        self.aggression_level = personality.get("aggression", 8)  # 1-10
+        self.insecurity_level = personality.get("insecurity", 7)  # 1-10
+        self.need_for_control = personality.get("control_need", 8)  # 1-10
         
+        # 霸凌者通常共情能力较低
+        self.empathy_level = min(3, self.empathy_level)
+        
+    def get_role_description(self) -> str:
+        """获取角色描述"""
+        return f"一位{self.age}岁的霸凌者，攻击性较强，但内心缺乏安全感"
+    
     def get_current_concerns(self) -> List[str]:
         """获取当前关注的问题"""
-        concerns = ["维持自己的地位", "显示力量", "控制他人"]
-        
-        if self.insecurity_level > 7:
-            concerns.append("掩饰自己的不安全感")
-            
-        return concerns
+        return ["维持地位", "控制他人", "掩饰脆弱", "获得关注"]
     
-    async def initiate_bullying(self, target_weakness: str) -> str:
-        """发起霸凌行为"""
-        situation = f"注意到目标的{target_weakness}，这是一个很好的攻击点"
-        return await self.respond_to_situation(situation)
-    
-    async def react_to_target_vulnerability(self, target_state: EmotionState) -> str:
-        """对目标脆弱状态的反应"""
-        if target_state in [EmotionState.SAD, EmotionState.DEPRESSED]:
-            situation = f"看到目标显得{target_state.value}，这让我感到更有控制力"
+    async def bully_behavior(self, target: str, context: str) -> str:
+        """霸凌行为"""
+        if self.need_for_control > 7:
+            situation = f"在{context}的情况下，想要控制{target}，显示我的权威"
+        elif self.insecurity_level > 6:
+            situation = f"在{context}的情况下，通过贬低{target}来让自己感觉更好"
         else:
-            situation = f"目标看起来{target_state.value}，需要想办法让他屈服"
+            situation = f"在{context}的情况下，对{target}进行挑衅"
             
         return await self.respond_to_situation(situation)
-
+    
+    async def react_to_resistance(self, target_response: str) -> str:
+        """对反抗的反应"""
+        if self.aggression_level > 7:
+            situation = f"面对反抗：{target_response}，我感到愤怒，想要加强控制"
+        else:
+            situation = f"面对反抗：{target_response}，我想要维持威权"
+            
+        return await self.respond_to_situation(situation)
 
 class BestFriendAgent(ClassmateAgent):
-    """最好朋友Agent"""
+    """最好朋友Agent - 继承自ClassmateAgent"""
     
     def __init__(self, name: str, age: int, personality: Dict[str, Any], 
-                 gemini_client: GeminiClient):
-        personality["empathy"] = max(7, personality.get("empathy", 8))  # 高共情
-        super().__init__(name, age, personality, gemini_client, "好友")
-        self.loyalty_level = personality.get("loyalty", 9)
-        self.emotional_support_ability = personality.get("support_ability", 8)
-        self.shared_interests = personality.get("shared_interests", ["学习", "游戏"])
+                 ai_client: Union['GeminiClient', 'DeepSeekClient']):
+        # 设置为好友关系
+        super().__init__(name, age, personality, ai_client, "好友")
+        self.loyalty_level = personality.get("loyalty", 9)  # 1-10
+        self.emotional_support_ability = personality.get("support_ability", 8)  # 1-10
+        self.shared_interests = personality.get("shared_interests", ["学习", "运动"])
         
+        # 好朋友通常共情能力较强
+        self.empathy_level = max(7, self.empathy_level)
+        
+    def get_role_description(self) -> str:
+        """获取角色描述"""
+        return f"一位{self.age}岁的最好朋友，忠诚度高，善于提供情感支持"
+    
     def get_current_concerns(self) -> List[str]:
         """获取当前关注的问题"""
         concerns = super().get_current_concerns()
-        concerns.insert(0, "好朋友的状况")
-        return concerns
+        concerns.insert(0, "朋友的幸福")
+        return concerns[:4]
     
     async def provide_emotional_support(self, friend_emotion: EmotionState) -> str:
         """提供情感支持"""
-        if friend_emotion in [EmotionState.SAD, EmotionState.DEPRESSED]:
-            situation = f"我最好的朋友感到{friend_emotion.value}，我必须想办法帮助他"
+        if friend_emotion in [EmotionState.DEPRESSED, EmotionState.SAD]:
+            situation = f"看到好朋友情绪{friend_emotion.value}，我想要给予最大的支持和安慰"
         elif friend_emotion == EmotionState.ANXIOUS:
-            situation = f"朋友显得{friend_emotion.value}，我想安慰他减轻压力"
+            situation = f"朋友显得{friend_emotion.value}，我想帮助他放松"
         else:
-            situation = f"想要和好朋友分享一些开心的事情"
+            situation = f"想要关心一下朋友的状况"
             
         return await self.respond_to_situation(situation)
     
-    def detect_friend_depression_signs(self, behavioral_changes: List[str]) -> bool:
-        """检测朋友的抑郁征象"""
-        # 最好的朋友通常能敏锐察觉变化
-        return len(behavioral_changes) > 0 and self.emotional_support_ability > 6 
+    async def share_activity(self, activity: str) -> str:
+        """分享活动"""
+        if activity in self.shared_interests:
+            situation = f"和好朋友一起{activity}，这是我们都喜欢的"
+        else:
+            situation = f"虽然{activity}不是我最喜欢的，但愿意陪朋友一起"
+            
+        return await self.respond_to_situation(situation)
+    
+    async def notice_friend_isolation(self, isolation_behavior: str) -> str:
+        """注意到朋友孤立"""
+        situation = f"发现朋友{isolation_behavior}，我很担心，想要主动接近"
+        return await self.respond_to_situation(situation) 

@@ -39,5 +39,3 @@ logs/
 .DS_Store
 Thumbs.db
 
-# API Keys (重要：保护API密钥)
-config_local.py 
