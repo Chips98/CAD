@@ -96,7 +96,7 @@ mental_health_agent/
 
 ```bash
 # 克隆项目
-git clone <your-repo-url>
+git clone https://github.com/Benioh/Adolescent-Depression-Simulator.git
 cd mental_health_agent
 
 # 安装依赖
