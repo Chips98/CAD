@@ -1,5 +1,9 @@
 # 心理健康Agent模拟框架
-<img src="https://github.com/user-attachments/assets/4fedb65a-5774-440a-810e-ef3c550072f5" width="500" alt="depression">
+<img src="https://github.com/user-attachments/assets/4fedb65a-5774-440a-810e-ef3c550072f5" 
+     width="500" 
+     alt="depression" 
+     style="display: block; margin: 0 auto;">
+
 一个基于大语言模型的心理健康模拟系统，通过多Agent协同展示学生从健康状态逐渐发展为抑郁症的心理过程，并提供完整的心理咨询对话功能。
 
 
