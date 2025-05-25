@@ -252,6 +252,7 @@ Adolescent-Depression-Simulator/
 
 
 ### 使用自定义配置文件运行
+```
 python main.py -c sim_config.my_scenario
 ```
 
