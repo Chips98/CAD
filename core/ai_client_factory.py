@@ -67,11 +67,11 @@ class AIClientFactory:
         providers = []
         
         # 检查Gemini
-        if hasattr(config, 'GEMINI_API_KEY') and config.GEMINI_API_KEY:
+        if hasattr(config, 'GEMINI_API_KEY') and config.GEMINI_API_KEY and config.GEMINI_API_KEY.strip():
             providers.append('gemini')
         
         # 检查DeepSeek
-        if hasattr(config, 'DEEPSEEK_API_KEY') and config.DEEPSEEK_API_KEY:
+        if hasattr(config, 'DEEPSEEK_API_KEY') and config.DEEPSEEK_API_KEY and config.DEEPSEEK_API_KEY.strip():
             providers.append('deepseek')
         
         return providers

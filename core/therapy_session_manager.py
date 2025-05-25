@@ -7,8 +7,7 @@ from rich.console import Console
 from rich.panel import Panel
 import asyncio 
 from datetime import datetime 
-from typing import Optional, Union
-
+from typing import Optional, Union, Dict, List, Any
 from agents.therapist_agent import TherapistAgent 
 import config
 
@@ -18,19 +17,31 @@ MAX_EVENTS_TO_SHOW = 5
 
 console = Console()
 
+# 抑郁程度映射（用于恢复机制）
+DEPRESSION_LEVELS = {
+    "HEALTHY": 0,      # 健康
+    "MILD_RISK": 1,    # 轻度风险  
+    "MODERATE": 2,     # 中度抑郁
+    "SEVERE": 3,       # 重度抑郁
+    "CRITICAL": 4      # 严重抑郁
+}
+
+# 反向映射
+DEPRESSION_LEVEL_NAMES = {v: k for k, v in DEPRESSION_LEVELS.items()}
+
 class TherapySessionManager:
     """
     管理心理咨询对话的核心类。
     负责加载患者数据、生成回应、管理对话历史等。
     """
     def __init__(self, 
-                 ai_client: Union['GeminiClient', 'DeepSeekClient'], 
-                 therapist_agent: TherapistAgent = None, 
-                 conversation_history_length: int = None, # 默认从config读取
-                 max_events_to_show: int = None): # 默认从config读取
-        self.ai_client = ai_client
-        self.therapist_agent = therapist_agent if therapist_agent else TherapistAgent("专业心理督导", ai_client)
-        self.patient_data = None
+                 ai_client                  : Union['GeminiClient', 'DeepSeekClient'],
+                 therapist_agent            : TherapistAgent = None,
+                 conversation_history_length: int = None,                              # 默认从config读取
+                 max_events_to_show         : int = None)                            : # 默认从config读取
+        self.ai_client            = ai_client
+        self.therapist_agent      = therapist_agent if therapist_agent else TherapistAgent("专业心理督导", ai_client)
+        self.patient_data         = None
         self.conversation_history = []
         
         # 使用传入的配置或config中的默认值
@@ -45,6 +56,13 @@ class TherapySessionManager:
         self.current_patient_file_path: Optional[Path] = None # 新增，用于存储加载文件的原始路径
         self.current_simulation_id: Optional[str] = None # 新增，用于存储当前模拟的ID
         self.loaded_data_type: Optional[str] = None # 新增，记录加载的数据类型
+        
+        # 恢复机制相关属性
+        self.initial_depression_level: Optional[str] = None  # 记录初始抑郁程度
+        self.current_depression_level: Optional[str] = None  # 当前抑郁程度
+        self.recovery_progress: List[Dict] = []  # 记录恢复进展
+        self.therapeutic_alliance_score: float = 0.0  # 治疗联盟分数 (0-10)
+        self.session_effectiveness_scores: List[float] = []  # 每轮对话的效果分数
         
         console.print(f"[debug]TherapySessionManager initialized with history_length={self.conversation_history_length}, max_events={self.max_events_to_show}, supervision_interval={self.supervision_interval}[/debug]")
 
@@ -263,19 +281,31 @@ class TherapySessionManager:
         return summary
 
     def display_patient_status_panel(self):
-        """以Rich Panel形式显示患者状态"""
+        """以Rich Panel形式显示患者状态（包含恢复进展）"""
         if not self.patient_data:
             console.print("[yellow]没有患者数据可显示。[/yellow]")
             return
 
         has_full_history = 'all_daily_events_combined' in self.patient_data
 
+        # 添加恢复进展信息
+        recovery_info = ""
+        if self.current_depression_level and self.initial_depression_level:
+            initial_value = DEPRESSION_LEVELS.get(self.initial_depression_level, 2)
+            current_value = DEPRESSION_LEVELS.get(self.current_depression_level, 2)
+            if current_value < initial_value:
+                recovery_info = f"  [green]恢复进展：从 {self.initial_depression_level} → {self.current_depression_level}[/green]\n"
+            elif current_value > initial_value:
+                recovery_info = f"  [red]状态变化：从 {self.initial_depression_level} → {self.current_depression_level}[/red]\n"
+
         panel_content = (
             f"[bold]数据来源：[/bold]{self.patient_data.get('data_source', '未知')}\n\n"
             f"[bold]患者信息：[/bold]\n"
             f"  姓名：{self.patient_data.get('name', '李明')}\n"
             f"  年龄：{self.patient_data.get('age', 17)}岁\n"
-            f"  抑郁程度：{self.patient_data.get('depression_level', 'N/A')}\n\n"
+            f"  抑郁程度：{self.current_depression_level or self.patient_data.get('depression_level', 'N/A')}\n"
+            f"{recovery_info}"
+            f"  治疗联盟：{self.therapeutic_alliance_score:.1f}/10\n\n"
             f"[bold]当前状态描述：[/bold]\n{self.patient_data.get('final_state_description', '状态未知')}\n\n"
         )
 
@@ -577,15 +607,29 @@ class TherapySessionManager:
         else:
             data_richness_note = f"注意：你只记得一些重要的经历片段，但这些已经深深影响了你的心理状态。"
 
+        # 使用当前的抑郁程度（如果有恢复追踪）
+        current_depression = self.current_depression_level or self.patient_data.get('depression_level', 'MODERATE')
+        
+        # 如果抑郁程度有改善，添加相关背景
+        recovery_context = ""
+        if self.current_depression_level and self.initial_depression_level:
+            initial_value = DEPRESSION_LEVELS.get(self.initial_depression_level, 2)
+            current_value = DEPRESSION_LEVELS.get(self.current_depression_level, 2)
+            if current_value < initial_value:
+                recovery_context = f"\n        - 治疗进展：你的状态从 {self.initial_depression_level} 改善到了 {self.current_depression_level}，你能感受到一些积极的变化"
+                recovery_context += f"\n        - 治疗联盟：你与咨询师的关系评分为 {self.therapeutic_alliance_score:.1f}/10"
+            elif current_value > initial_value:
+                recovery_context = f"\n        - 治疗挑战：你的状态从 {self.initial_depression_level} 变为 {self.current_depression_level}，你可能感到更加困难"
+
         prompt = f"""
         你是{self.patient_data.get('name', '李明')}，一个{self.patient_data.get('age', 17)}岁的高中生，正在接受心理咨询。
 
         你的完整背景：
         - 数据来源：{self.patient_data.get('data_source', '模拟记录')}
         - 当前状态描述：{self.patient_data.get('final_state_description', '心理健康状况不佳')}
-        - 抑郁程度：{self.patient_data.get('depression_level', 'MODERATE')}
+        - 抑郁程度：{current_depression}
         - 主要症状：{symptoms_text}
-        - 风险因素：{risk_factors_text}
+        - 风险因素：{risk_factors_text}{recovery_context}
         
         {data_richness_note}
         {psychological_development_text if has_full_history else ""}
@@ -600,6 +644,7 @@ class TherapySessionManager:
         - 容易自我责备，认为问题都是自己造成的。
         - 表达方式符合青少年特点，有时可能不直接或带有情绪。
         {"- 由于拥有完整的发展历程记忆，你对自己的问题演变过程有深刻但痛苦的认识。" if has_full_history else ""}
+        {"- 如果治疗有进展，你可能会表现出一些希望的迹象，但仍然谨慎。" if recovery_context and "改善" in recovery_context else ""}
 
         对话背景：
         {context_note} (对话历史长度配置为 {self.conversation_history_length} 轮)
@@ -611,12 +656,13 @@ class TherapySessionManager:
 
         请以{self.patient_data.get('name', '李明')}的身份回应，请确保你的回应：
         1. 真实反映基于你独特背景、经历和当前心理状态的情绪和想法。
-        2. 符合你当前被评估的抑郁程度。
+        2. 符合你当前被评估的抑郁程度（{current_depression}）。
         3. 使用符合你年龄和性格的语言风格。
         4. 体现出对咨询师可能的防备心理，但也可能流露出求助的渴望或对被理解的期待。
         5. 自然地展现情绪波动，这可能包括沉默、犹豫、悲伤、愤怒、麻木或困惑等。
         6. 考虑到当前对话所处的阶段和与咨询师之间正在建立的关系。
         {"7. 在合适的时候，可以引用你发展历程中的具体事件或感受，展现出深层的心理创伤和复杂情感。" if has_full_history else ""}
+        {"8. 如果状态有所改善，可以适当表现出一些积极的变化，但要符合青少年的表达方式。" if recovery_context and "改善" in recovery_context else ""}
 
         你的回应应当自然且符合情境，避免过于冗长或戏剧化，一般不超过100字。
         """
@@ -669,7 +715,7 @@ class TherapySessionManager:
 
     async def save_session_log(self, session_id_prefix: str = "session") -> Optional[Path]:
         """保存当前咨询对话记录到JSON文件。"""
-        if not self.conversation_history:
+        if not self.conversation_history: 
             console.print("[yellow]没有对话记录可保存。[/yellow]")
             return None
 
@@ -698,10 +744,17 @@ class TherapySessionManager:
                 "start_time": self.conversation_history[0]["timestamp"] if self.conversation_history else None,
                 "end_time": self.conversation_history[-1]["timestamp"] if self.conversation_history else None,
                 "total_exchanges": len(self.conversation_history),
-                "session_saved_to": str(session_file_path) # 记录保存路径本身
+                "session_saved_to": str(session_file_path), # 记录保存路径本身
+                # 恢复进展信息
+                "initial_depression_level": self.initial_depression_level,
+                "final_depression_level": self.current_depression_level,
+                "therapeutic_alliance_score": self.therapeutic_alliance_score,
+                "avg_effectiveness_score": sum(self.session_effectiveness_scores) / len(self.session_effectiveness_scores) if self.session_effectiveness_scores else 0
             },
             "patient_background_at_start": self.patient_data,
-            "conversation": self.conversation_history
+            "conversation": self.conversation_history,
+            "recovery_progress": self.recovery_progress,
+            "session_effectiveness_scores": self.session_effectiveness_scores
         }
         
         try:
@@ -720,17 +773,22 @@ class TherapySessionManager:
             return
 
         # 使用传入的参数或实例的设置
-        provide_supervision = provide_supervision if provide_supervision is not None else self.enable_supervision
+        provide_supervision  = provide_supervision if provide_supervision is not None else self.enable_supervision
         supervision_interval = supervision_interval if supervision_interval is not None else self.supervision_interval
 
         self.conversation_history = [] # 开始新会话前清空历史
         
+        # 初始化恢复追踪
+        self._initialize_recovery_tracking()
+        
         console.print(Panel(
             f"[bold blue]与 {self.patient_data.get('name', '李明')} 的心理咨询已开始[/bold blue]\n\n"
             f"患者数据来源: {self.patient_data.get('data_source', '未知')}\n"
-            f"督导设置: {'✅启用' if provide_supervision else '❌禁用'} (间隔: {supervision_interval}轮)\n\n"
+            f"督导设置: {'✅启用' if provide_supervision else '❌禁用'} (间隔: {supervision_interval}轮)\n"
+            f"恢复机制: ✅已启用\n\n"
             "💬 开始对话\n"
             "⚙️  输入 's' 或 'settings' 进入设置菜单\n"
+            "📊 输入 'progress' 或 'p' 查看恢复进展\n"
             "🚪 输入 'quit', 'exit', '退出', 或 'q' 来结束对话",
             title="💬 咨询会话进行中",
             border_style="blue"
@@ -756,6 +814,10 @@ class TherapySessionManager:
                     console.print(f"[cyan]当前督导设置: {'✅启用' if provide_supervision else '❌禁用'} (间隔: {supervision_interval}轮)[/cyan]\n")
                     continue
                 
+                if therapist_input.lower() in ['progress', 'p', '进展']:
+                    self._display_recovery_progress()
+                    continue
+                
                 if not therapist_input:
                     continue
                 
@@ -771,16 +833,44 @@ class TherapySessionManager:
                     "timestamp": datetime.now().isoformat()
                 })
                 
-                if provide_supervision and len(self.conversation_history) % supervision_interval == 0:
-                    console.print("[grey50]督导正在分析...[/grey50]")
-                    supervision_suggestion = await self.get_therapist_supervision(therapist_input, patient_response, supervision_interval)
-                    console.print(Panel(
-                        supervision_suggestion,
-                        title=f"💡 专业督导建议 (基于最近{supervision_interval}轮对话)",
-                        border_style="green",
-                        expand=False
-                    ))
-                    console.print()
+                # 每supervision_interval轮对话进行一次评估和督导
+                if len(self.conversation_history) % supervision_interval == 0:
+                    # 评估对话效果
+                    console.print("[grey50]评估治疗效果...[/grey50]")
+                    
+                    # 获取最近supervision_interval轮的对话进行整体评估
+                    recent_conversations = self.conversation_history[-supervision_interval:]
+                    effectiveness = await self._evaluate_conversation_effectiveness_batch(recent_conversations, supervision_interval)
+                    
+                    # 更新治疗联盟分数
+                    self.therapeutic_alliance_score = max(0, min(10, 
+                        self.therapeutic_alliance_score + effectiveness.get('therapeutic_alliance_change', 0)))
+                    
+                    # 记录效果分数
+                    self.session_effectiveness_scores.append(effectiveness.get('effectiveness_score', 5))
+                    
+                    # 显示简短的效果反馈
+                    if effectiveness.get('breakthrough_moment', False):
+                        console.print("[bold green]💫 突破性时刻！患者有重要的情感表达或认知转变。[/bold green]")
+                    
+                    if effectiveness.get('risk_indicators', []):
+                        console.print(f"[bold red]⚠️ 风险提示: {', '.join(effectiveness['risk_indicators'])}[/bold red]")
+                    
+                    # 提供督导建议
+                    if provide_supervision:
+                        console.print("[grey50]督导正在分析...[/grey50]")
+                        supervision_suggestion = await self.get_therapist_supervision(therapist_input, patient_response, supervision_interval)
+                        console.print(Panel(
+                            supervision_suggestion,
+                            title=f"💡 专业督导建议 (基于最近{supervision_interval}轮对话)",
+                            border_style="green",
+                            expand=False
+                        ))
+                        console.print()
+                
+                # 每5轮对话检查是否可以更新抑郁程度
+                if len(self.conversation_history) % 5 == 0:
+                    self._update_depression_level()
 
         except KeyboardInterrupt:
             console.print("\n[yellow]咨询被用户中断。[/yellow]")
@@ -790,6 +880,238 @@ class TherapySessionManager:
             if self.conversation_history:
                 await self.save_session_log(session_id_prefix=f"therapy_session_{self.patient_data.get('name', 'patient')}")
             console.print("感谢使用本咨询模块。")
+
+    def _initialize_recovery_tracking(self):
+        """初始化恢复追踪机制"""
+        if self.patient_data:
+            self.initial_depression_level = self.patient_data.get('depression_level', 'MODERATE')
+            self.current_depression_level = self.initial_depression_level
+            self.recovery_progress = [{
+                "timestamp": datetime.now().isoformat(),
+                "depression_level": self.initial_depression_level,
+                "event": "开始咨询",
+                "therapeutic_alliance_score": 0.0
+            }]
+            self.therapeutic_alliance_score = 0.0
+            self.session_effectiveness_scores = []
+            console.print(f"[cyan]恢复追踪已初始化。初始抑郁程度: {self.initial_depression_level}[/cyan]")
+
+    async def _evaluate_conversation_effectiveness(self, therapist_input: str, patient_response: str) -> Dict[str, any]:
+        """评估单轮对话的治疗效果"""
+        prompt = f"""
+        请评估这轮心理咨询对话的治疗效果。
+        
+        咨询师说: "{therapist_input}"
+        患者回应: "{patient_response}"
+        
+        患者背景:
+        - 当前抑郁程度: {self.current_depression_level}
+        - 治疗联盟分数: {self.therapeutic_alliance_score:.1f}/10
+        - 已进行对话轮数: {len(self.conversation_history)}
+        
+        请返回JSON格式的评估结果:
+        {{
+            "effectiveness_score": 0-10的分数（10表示非常有效）,
+            "therapeutic_alliance_change": -2到2的变化值,
+            "key_therapeutic_factors": ["识别的治疗因素列表"],
+            "patient_engagement": "高/中/低",
+            "emotional_expression": "开放/谨慎/封闭",
+            "resistance_level": "无/轻微/中等/严重",
+            "breakthrough_moment": true/false,
+            "risk_indicators": ["风险指标列表，如有"],
+            "recommendation": "简短的建议"
+        }}
+        
+        只返回JSON，不要其他内容。
+        """
+        
+        try:
+            response = await self.ai_client.generate_response(prompt)
+            # 解析JSON
+            if "```json" in response:
+                json_str = response.split("```json")[1].split("```")[0].strip()
+            elif "```" in response:
+                json_str = response.split("```")[1].strip()
+            else:
+                json_str = response.strip()
+            
+            return json.loads(json_str)
+        except Exception as e:
+            console.print(f"[yellow]评估对话效果时出错: {e}[/yellow]")
+            # 返回默认评估
+            return {
+                "effectiveness_score": 5,
+                "therapeutic_alliance_change": 0,
+                "key_therapeutic_factors": [],
+                "patient_engagement": "中",
+                "emotional_expression": "谨慎",
+                "resistance_level": "轻微",
+                "breakthrough_moment": False,
+                "risk_indicators": [],
+                "recommendation": "继续当前方法"
+            }
+
+    async def _evaluate_conversation_effectiveness_batch(self, recent_conversations: List[Dict], interval: int) -> Dict[str, any]:
+        """批量评估最近几轮对话的整体治疗效果"""
+        # 构建对话历史文本
+        conversation_text = ""
+        for i, conv in enumerate(recent_conversations, 1):
+            conversation_text += f"第{i}轮:\n"
+            conversation_text += f"咨询师: {conv.get('therapist', '')}\n"
+            conversation_text += f"患者: {conv.get('patient', '')}\n\n"
+        
+        prompt = f"""
+        请评估最近{interval}轮心理咨询对话的整体治疗效果。
+        
+        对话记录:
+        {conversation_text}
+        
+        患者背景:
+        - 当前抑郁程度: {self.current_depression_level}
+        - 治疗联盟分数: {self.therapeutic_alliance_score:.1f}/10
+        - 总对话轮数: {len(self.conversation_history)}
+        
+        请返回JSON格式的整体评估结果:
+        {{
+            "effectiveness_score": 0-10的平均分数（10表示非常有效）,
+            "therapeutic_alliance_change": -2到2的总变化值,
+            "key_therapeutic_factors": ["这{interval}轮中识别的主要治疗因素"],
+            "patient_engagement": "高/中/低（整体评估）",
+            "emotional_expression": "开放/谨慎/封闭（整体趋势）",
+            "resistance_level": "无/轻微/中等/严重（整体水平）",
+            "breakthrough_moment": true/false（是否有突破性进展）,
+            "risk_indicators": ["这{interval}轮中发现的风险指标"],
+            "recommendation": "基于这{interval}轮对话的建议",
+            "progress_summary": "简要总结这{interval}轮的治疗进展"
+        }}
+        
+        只返回JSON，不要其他内容。
+        """
+        
+        try:
+            response = await self.ai_client.generate_response(prompt)
+            # 解析JSON
+            if "```json" in response:
+                json_str = response.split("```json")[1].split("```")[0].strip()
+            elif "```" in response:
+                json_str = response.split("```")[1].strip()
+            else:
+                json_str = response.strip()
+            
+            result = json.loads(json_str)
+            
+            # 显示进展总结
+            if result.get('progress_summary'):
+                console.print(f"[cyan]📝 {interval}轮对话总结: {result['progress_summary']}[/cyan]")
+            
+            return result
+        except Exception as e:
+            console.print(f"[yellow]批量评估对话效果时出错: {e}[/yellow]")
+            # 返回默认评估
+            return {
+                "effectiveness_score": 5,
+                "therapeutic_alliance_change": 0,
+                "key_therapeutic_factors": [],
+                "patient_engagement": "中",
+                "emotional_expression": "谨慎",
+                "resistance_level": "轻微",
+                "breakthrough_moment": False,
+                "risk_indicators": [],
+                "recommendation": "继续当前方法",
+                "progress_summary": f"最近{interval}轮对话的评估出现错误，使用默认值"
+            }
+
+    def _update_depression_level(self):
+        """根据治疗进展更新抑郁程度"""
+        if not self.session_effectiveness_scores:
+            return
+        
+        # 计算最近几轮的平均效果
+        recent_scores = self.session_effectiveness_scores[-5:]  # 最近5轮
+        avg_effectiveness = sum(recent_scores) / len(recent_scores)
+        
+        # 获取当前抑郁程度的数值
+        current_level_value = DEPRESSION_LEVELS.get(self.current_depression_level, 2)
+        
+        # 根据效果和治疗联盟决定是否改善
+        improvement_threshold = 7.0  # 效果分数阈值
+        alliance_threshold = 6.0     # 治疗联盟阈值
+        
+        new_level_value = current_level_value
+        
+        # 判断是否可以改善
+        if avg_effectiveness >= improvement_threshold and self.therapeutic_alliance_score >= alliance_threshold:
+            # 检查是否有足够的积极对话
+            if len(self.session_effectiveness_scores) >= 5:
+                # 可以改善一级
+                if current_level_value > 0:
+                    new_level_value = current_level_value - 1
+                    console.print(f"[green]✨ 治疗取得显著进展！[/green]")
+        
+        # 判断是否恶化（如果效果很差）
+        elif avg_effectiveness < 3.0 and self.therapeutic_alliance_score < 3.0:
+            if current_level_value < 4:
+                new_level_value = current_level_value + 1
+                console.print(f"[red]⚠️ 治疗效果不佳，需要调整方法。[/red]")
+        
+        # 更新抑郁程度
+        if new_level_value != current_level_value:
+            old_level = self.current_depression_level
+            self.current_depression_level = DEPRESSION_LEVEL_NAMES.get(new_level_value, "MODERATE")
+            
+            # 记录变化
+            self.recovery_progress.append({
+                "timestamp": datetime.now().isoformat(),
+                "depression_level": self.current_depression_level,
+                "event": f"抑郁程度从 {old_level} 变为 {self.current_depression_level}",
+                "therapeutic_alliance_score": self.therapeutic_alliance_score,
+                "avg_effectiveness": avg_effectiveness
+            })
+            
+            # 更新患者数据
+            if self.patient_data:
+                self.patient_data['depression_level'] = self.current_depression_level
+            
+            # 显示进展
+            self._display_recovery_progress()
+
+    def _display_recovery_progress(self):
+        """显示恢复进展"""
+        if not self.recovery_progress:
+            return
+        
+        initial_value = DEPRESSION_LEVELS.get(self.initial_depression_level, 2)
+        current_value = DEPRESSION_LEVELS.get(self.current_depression_level, 2)
+        
+        progress_text = f"""
+[bold cyan]📊 治疗进展报告[/bold cyan]
+
+初始状态: {self.initial_depression_level} (级别 {initial_value})
+当前状态: {self.current_depression_level} (级别 {current_value})
+治疗联盟: {self.therapeutic_alliance_score:.1f}/10
+对话轮数: {len(self.conversation_history)}
+
+进展轨迹:
+"""
+        
+        for i, progress in enumerate(self.recovery_progress[-5:]):  # 显示最近5条
+            progress_text += f"  {i+1}. {progress['event']} (联盟分数: {progress['therapeutic_alliance_score']:.1f})\n"
+        
+        # 计算整体改善
+        improvement = initial_value - current_value
+        if improvement > 0:
+            progress_text += f"\n[green]✅ 总体改善: 降低了 {improvement} 个级别[/green]"
+        elif improvement < 0:
+            progress_text += f"\n[red]⚠️ 状态恶化: 上升了 {-improvement} 个级别[/red]"
+        else: 
+            progress_text += f"\n[yellow]📍 状态维持在初始水平[/yellow]"
+        
+        console.print(Panel(
+            progress_text.strip(),
+            title        = "🌟 恢复进展",
+            border_style = "cyan",
+            expand       = False
+        ))
 
 # 示例用法 (后续会移除或放到测试/demo中)
 if __name__ == '__main__':

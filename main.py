@@ -5,6 +5,7 @@ import asyncio
 import logging
 import os
 import sys
+import argparse
 from pathlib import Path
 from rich.console import Console
 from rich.progress import Progress, SpinnerColumn, TextColumn
@@ -144,39 +145,99 @@ def create_base_logs_directory():
     """创建基础的logs目录，如果它不存在。"""
     Path("logs").mkdir(exist_ok=True)
 
-def display_welcome():
+def display_welcome(): 
     """显示欢迎信息"""
     welcome_text = Text("心理健康Agent模拟框架", style="bold blue", justify="center")
-    subtitle = Text("模拟学生从健康到抑郁的心理发展过程", style="italic", justify="center")
+    subtitle     = Text("模拟心理健康发展过程的AI系统", style="italic", justify="center")
     
     panel = Panel.fit(
         f"{welcome_text}\n{subtitle}\n\n"
-        "本模拟将展示一个学生角色在学校和家庭环境中，\n"
-        "由于学业压力、人际关系等因素逐渐发展为抑郁症的过程。\n"
-        "所有角色由Gemini AI驱动，提供真实的互动体验。",
-        title="🧠 Mental Health Simulation",
-        border_style="blue"
+        "本系统通过多个AI智能体模拟真实的人际互动环境，\n"
+        "展示心理健康状况在各种压力因素影响下的变化过程。\n"
+        "支持自定义场景配置，可模拟不同的心理健康情境。",
+        title        = "🧠 Mental Health Simulation",
+        border_style = "blue"
     )
     console.print(panel)
 
-def display_simulation_info():
+def get_scenario_description(engine=None): 
+    """根据配置生成场景描述"""
+    if engine and hasattr(engine, 'config'):
+        # 获取主角信息
+        protagonist_config = engine.config.CHARACTERS.get('protagonist', {})
+        protagonist_name = protagonist_config.get('name', '主角')
+        protagonist_age = protagonist_config.get('age', '')
+        
+        # 获取阶段信息
+        stages = list(engine.config.STAGE_CONFIG.keys())
+        stages_str = " → ".join(stages[:3]) + "..."
+        
+        return f"即将开始模拟 {protagonist_name}（{protagonist_age}岁）的心理发展过程\n发展阶段：{stages_str}"
+    else:
+        return "即将开始心理健康模拟"
+
+def display_simulation_info(engine=None): 
     """显示模拟信息"""
     info_table = Table(title="模拟角色信息")
     info_table.add_column("角色", style="cyan", no_wrap=True)
-    info_table.add_column("关系", style="green")
+    info_table.add_column("类型", style="green")
     info_table.add_column("特点", style="yellow")
     
-    info_table.add_row("李明", "主角学生", "内向、敏感、完美主义")
-    info_table.add_row("李建国", "父亲", "严厉型教育，工程师")
-    info_table.add_row("王秀芳", "母亲", "焦虑型，情感敏感")
-    info_table.add_row("张老师", "数学老师", "严厉，期望高")
-    info_table.add_row("王小明", "最好朋友", "忠诚，支持力强")
-    info_table.add_row("刘强", "霸凌者", "攻击性强，缺乏共情")
-    info_table.add_row("陈优秀", "竞争对手", "学业优秀，竞争激烈")
+    if engine and hasattr(engine, 'config'): 
+        # 从配置中动态读取角色信息
+        for char_id, char_config in engine.config.CHARACTERS.items():
+            name = char_config.get('name', '未知')
+            char_type = char_config.get('type', '').replace('Agent', '')
+            
+            # 提取关键特征
+            personality = char_config.get('personality', {})
+            traits = []
+            
+            if 'traits' in personality:
+                traits.extend(personality['traits'][:2])  # 取前两个特征
+            elif 'occupation' in personality:
+                traits.append(personality['occupation'])
+            elif 'teaching_style' in personality:
+                traits.append(personality['teaching_style'])
+            
+            if char_id == 'protagonist':
+                char_type = "主角"
+            
+            traits_str = "、".join(traits) if traits else "多样化性格"
+            info_table.add_row(name, char_type, traits_str)
+    else: 
+        # 如果没有engine，尝试加载默认配置来显示
+        try: 
+            import sim_config.simulation_config as default_config
+            for char_id, char_config in default_config.CHARACTERS.items(): 
+                name = char_config.get('name', '未知')
+                char_type = char_config.get('type', '').replace('Agent', '')
+                
+                # 提取关键特征
+                personality = char_config.get('personality', {})
+                traits = []
+                
+                if 'traits' in personality:
+                    traits.extend(personality['traits'][:2])
+                elif 'occupation' in personality:
+                    traits.append(personality['occupation'])
+                elif 'teaching_style' in personality:
+                    traits.append(personality['teaching_style'])
+                
+                if char_id == 'protagonist':
+                    char_type = "主角"
+                
+                traits_str = "、".join(traits) if traits else "多样化性格"
+                info_table.add_row(name, char_type, traits_str)
+        except ImportError:
+            # 如果连默认配置都没有，显示占位信息
+            info_table.add_row("待定", "主角", "将根据配置确定")
+            info_table.add_row("待定", "支持角色", "家人、朋友、老师等")
+            info_table.add_row("待定", "环境角色", "影响主角发展的人物")
     
     console.print(info_table)
 
-async def run_simulation_with_progress(engine: SimulationEngine, days: int = 30):
+async def run_simulation_with_progress(engine: SimulationEngine, days: int = 30): 
     """带进度条的模拟执行"""
     with Progress(
         SpinnerColumn(),
@@ -199,12 +260,24 @@ def display_results_summary(report_path: str):
             report = json.load(f)
         
         summary = report.get("simulation_summary", {})
+        journey = report.get("protagonist_journey", {})
+        
+        # 获取主角名称
+        protagonist_name = "主角"
+        if journey and 'final_state' in journey: 
+            # 尝试从最终状态中提取名称
+            final_state = journey['final_state']
+            if isinstance(final_state, str) and '：' in final_state:
+                protagonist_name = final_state.split('：')[0]
+        
         console.print(Panel(
             f"[bold]模拟总览 (来自 {Path(report_path).name})[/bold]\n"
+            f"主角: {protagonist_name}\n"
             f"总天数: {summary.get('total_days', 'N/A')}\n"
             f"最终阶段: {summary.get('final_stage', 'N/A')}\n"
-            f"抑郁程度: {summary.get('final_depression_level', 'N/A')}\n"
-            f"总事件数: {summary.get('total_events', 'N/A')}",
+            f"心理状态: {summary.get('final_depression_level', 'N/A')}\n"
+            f"总事件数: {summary.get('total_events', 'N/A')}\n"
+            f"事件多样性: {summary.get('event_variety_score', 0):.2%}",
             title="📊 模拟结果",
             border_style="green"
         ))
@@ -230,8 +303,8 @@ def display_menu():
     menu_table.add_column("选项", style="cyan", no_wrap=True)
     menu_table.add_column("功能描述", style="green")
     
-    menu_table.add_row("1", "运行30天心理健康模拟")
-    menu_table.add_row("2", "与模拟后的李明进行心理咨询对话")
+    menu_table.add_row("1", "运行心理健康模拟（30天）")
+    menu_table.add_row("2", "与模拟主角进行心理咨询对话")
     menu_table.add_row("3", "查看现有模拟报告")
     menu_table.add_row("0", "退出系统")
     
@@ -288,8 +361,17 @@ def view_existing_reports():
         console.print("[red]请输入有效的数字。[/red]")
     console.print("-"*50)
 
-async def main():
+async def main(): 
     """主函数"""
+    # 解析命令行参数
+    parser = argparse.ArgumentParser(description='心理健康Agent模拟框架')
+    parser.add_argument('-c', '--config', type=str, default='sim_config.simulation_config',
+                        help='配置模块路径 (默认: sim_config.simulation_config)')
+    args = parser.parse_args()
+    
+    # 存储配置模块路径
+    config_module = args.config
+    
     display_welcome()
     console.print()
     
@@ -329,11 +411,23 @@ async def main():
                     setup_simulation_logging(simulation_id)
                     
                     console.print("🎭 正在设置模拟环境...")
+                    console.print(f"[cyan]使用配置: {config_module}[/cyan]")
                     # 使用选定的AI提供商创建模拟引擎
-                    engine = SimulationEngine(simulation_id=simulation_id, model_provider=selected_provider)
+                    engine = SimulationEngine(
+                        simulation_id  = simulation_id,
+                        config_module  = config_module,
+                        model_provider = selected_provider
+                    )
+                    
                     engine.setup_simulation() 
-                    display_simulation_info()
+                    display_simulation_info(engine)
                     console.print()
+                    
+                    # 显示场景描述
+                    scenario_desc = get_scenario_description(engine)
+                    console.print(Panel(scenario_desc, title="📖 模拟场景", border_style="cyan"))
+                    console.print()
+                    
                     console.print("🚀 开始心理健康模拟...")
                     await run_simulation_with_progress(engine, days=30) 
                     console.print()
@@ -354,7 +448,7 @@ async def main():
                         f"详细日志: logs/{simulation_id}/simulation.log\n"
                         f"完整报告: {report_path}\n"
                         f"每日状态: logs/{simulation_id}/day_*_state.json\n\n"
-                        "现在您可以选择功能2与李明进行心理咨询对话，或功能3查看报告。",
+                        "现在您可以选择功能2与模拟主角进行心理咨询对话，或功能3查看报告。",
                         title="✅ 任务完成",
                         border_style="green"
                     ))

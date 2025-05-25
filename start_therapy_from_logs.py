@@ -5,13 +5,14 @@
 从现有log直接开始心理咨询 (已重构以支持模拟子文件夹)
 读取特定模拟运行的数据，立即开始与李明的心理咨询对话
 使用 TherapySessionManager 进行核心会话管理。
+支持 Gemini 和 DeepSeek API。
 """
 
 import asyncio
 import sys
 from pathlib import Path
 import json
-from typing import List, Dict, Any, Optional, Tuple # 添加 typing
+from typing import List, Dict, Any, Optional, Tuple, Union # 添加 Union
 
 # 添加项目根目录到路径
 sys.path.append(str(Path(__file__).resolve().parent.parent)) # 更可靠的路径添加
@@ -22,7 +23,8 @@ from rich.table import Table
 
 # 核心管理器
 from core.therapy_session_manager import TherapySessionManager
-from core.gemini_client import GeminiClient # 需要初始化Manager
+from core.gemini_client import GeminiClient
+from core.deepseek_client import DeepSeekClient  # 添加 DeepSeek 客户端
 from agents.therapist_agent import TherapistAgent # 需要初始化Manager
 
 # 假设config.py在项目根目录下
@@ -33,6 +35,80 @@ except ImportError:
     sys.exit(1)
 
 console = Console()
+
+def get_api_client() -> Union[GeminiClient, DeepSeekClient]:
+    """
+    根据配置获取 API 客户端。
+    如果两个 API 密钥都配置了，让用户选择使用哪个。
+    """
+    has_gemini = config.GEMINI_API_KEY and config.GEMINI_API_KEY != "your_gemini_api_key_here"
+    has_deepseek = config.DEEPSEEK_API_KEY and config.DEEPSEEK_API_KEY != ""
+    
+    if not has_gemini and not has_deepseek:
+        console.print("[red]错误: 请在 config.py 中至少设置一个有效的 API 密钥 (GEMINI_API_KEY 或 DEEPSEEK_API_KEY)。[/red]")
+        sys.exit(1)
+    
+    # 如果只有一个 API 可用，直接使用
+    if has_gemini and not has_deepseek:
+        console.print("[cyan]使用 Gemini API...[/cyan]")
+        return GeminiClient(api_key=config.GEMINI_API_KEY)
+    elif has_deepseek and not has_gemini:
+        console.print("[cyan]使用 DeepSeek API...[/cyan]")
+        return DeepSeekClient(
+            api_key=config.DEEPSEEK_API_KEY,
+            base_url=config.DEEPSEEK_BASE_URL,
+            model=config.DEEPSEEK_MODEL
+        )
+    
+    # 如果两个都可用，检查默认设置
+    default_provider = getattr(config, 'DEFAULT_MODEL_PROVIDER', 'gemini').lower()
+    
+    # 如果有默认设置且有效，直接使用
+    if default_provider == 'gemini' and has_gemini:
+        console.print(f"[cyan]使用默认配置的 Gemini API...[/cyan]")
+        return GeminiClient(api_key=config.GEMINI_API_KEY)
+    elif default_provider == 'deepseek' and has_deepseek:
+        console.print(f"[cyan]使用默认配置的 DeepSeek API...[/cyan]")
+        return DeepSeekClient(
+            api_key=config.DEEPSEEK_API_KEY,
+            base_url=config.DEEPSEEK_BASE_URL,
+            model=config.DEEPSEEK_MODEL
+        )
+    
+    # 让用户选择
+    console.print(Panel(
+        "[bold blue]选择 API 提供商[/bold blue]\n\n"
+        "检测到多个可用的 API 配置：",
+        title="🤖 API 选择",
+        border_style="blue"
+    ))
+    
+    table = Table(title="可用的 API 提供商")
+    table.add_column("选项", style="cyan", no_wrap=True)
+    table.add_column("提供商", style="green")
+    table.add_column("模型", style="yellow")
+    table.add_column("状态", style="magenta")
+    
+    table.add_row("1", "Gemini", "gemini-2.0-flash", "✅ 已配置")
+    table.add_row("2", "DeepSeek", config.DEEPSEEK_MODEL, "✅ 已配置")
+    
+    console.print(table)
+    
+    while True:
+        choice = console.input("\n[bold cyan]请选择 API 提供商 (1 或 2): [/bold cyan]").strip()
+        
+        if choice == "1":
+            console.print("[green]已选择 Gemini API[/green]")
+            return GeminiClient(api_key=config.GEMINI_API_KEY)
+        elif choice == "2":
+            console.print("[green]已选择 DeepSeek API[/green]")
+            return DeepSeekClient(
+                api_key=config.DEEPSEEK_API_KEY,
+                base_url=config.DEEPSEEK_BASE_URL,
+                model=config.DEEPSEEK_MODEL
+            )
+        else:
+            console.print("[red]无效选择，请输入 1 或 2。[/red]")
 
 def scan_simulation_runs() -> List[Dict[str, Any]]:
     """
@@ -241,6 +317,14 @@ def configure_settings():
     table.add_column("当前值", style="green")
     table.add_column("说明", style="yellow")
     
+    # 显示 API 配置
+    has_gemini = config.GEMINI_API_KEY and config.GEMINI_API_KEY != "your_gemini_api_key_here"
+    has_deepseek = config.DEEPSEEK_API_KEY and config.DEEPSEEK_API_KEY != ""
+    
+    table.add_row("Gemini API", "✅ 已配置" if has_gemini else "❌ 未配置", "Google Gemini API")
+    table.add_row("DeepSeek API", "✅ 已配置" if has_deepseek else "❌ 未配置", "DeepSeek Chat API")
+    table.add_row("默认 API", getattr(config, 'DEFAULT_MODEL_PROVIDER', 'gemini'), "默认使用的 API 提供商")
+    
     # 显示咨询相关设置
     table.add_row("对话历史长度", str(getattr(config, 'CONVERSATION_HISTORY_LENGTH', 20)), "AI在生成回应时参考的最近对话轮数")
     table.add_row("显示事件数量", str(getattr(config, 'MAX_EVENTS_TO_SHOW', 20)), "在患者状态面板中显示的最近重要事件数量")
@@ -293,7 +377,7 @@ def view_all_therapy_sessions_globally():
             console.print(f"  [red]读取文件 {session_file.name} 摘要失败: {e}[/red]")
     console.print("-" * 70 + "\n")
 
-async def main_loop(gemini_client: GeminiClient):
+async def main_loop(api_client: Union[GeminiClient, DeepSeekClient]):
     """主循环，处理用户选择。"""
 
     while True:
@@ -331,7 +415,7 @@ async def main_loop(gemini_client: GeminiClient):
                     
                     # 使用config中的设置创建TherapySessionManager
                     manager = TherapySessionManager(
-                        gemini_client=gemini_client
+                        ai_client=api_client  # 使用传入的 API 客户端
                         # 不再传递参数，让它使用config中的默认值
                     )
                     
@@ -356,14 +440,12 @@ async def main_loop(gemini_client: GeminiClient):
         console.print("\n" + "="*70 + "\n")
 
 async def main():
-    console.print("[bold blue]🧠 从现有模拟日志开始心理咨询 (v3 - 子文件夹支持)[/bold blue]\n")
+    console.print("[bold blue]🧠 从现有模拟日志开始心理咨询 (v4 - 支持多种 API)[/bold blue]\n")
     
-    if not config.GEMINI_API_KEY or config.GEMINI_API_KEY == "your_gemini_api_key_here":
-        console.print("[red]错误: 请在config.py中设置有效的Gemini API密钥。[/red]")
-        return
     try:
-        gemini_client = GeminiClient(api_key=config.GEMINI_API_KEY)
-        await main_loop(gemini_client)
+        # 获取 API 客户端（可能是 Gemini 或 DeepSeek）
+        api_client = get_api_client()
+        await main_loop(api_client)
     except Exception as e:
         console.print(f"[red]主程序发生严重错误: {e}[/red]")
         import traceback
