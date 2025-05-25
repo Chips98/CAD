@@ -83,7 +83,8 @@ class SimulationEngine:
         self.event_generator = EventGenerator(
             self.ai_client,
             self.config.EVENT_TEMPLATES,
-            character_mapping
+            character_mapping,
+            self.config
         )
         
         self.logger.info(f"Simulation setup complete with {len(self.agents)} agents")

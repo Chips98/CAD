@@ -13,10 +13,11 @@ from models.psychology_models import LifeEvent, EventType
 class EventGenerator:
     """动态事件生成器"""
     
-    def __init__(self, ai_client, event_templates: Dict, character_mapping: Dict):
+    def __init__(self, ai_client, event_templates: Dict, character_mapping: Dict, config=None):
         self.ai_client = ai_client
         self.event_templates = event_templates
         self.character_mapping = character_mapping  # 角色名称映射
+        self.config = config  # 配置模块
         self.logger = logging.getLogger(__name__)
         self.event_history = []  # 记录已生成的事件，避免重复
         
@@ -69,14 +70,14 @@ class EventGenerator:
         """填充事件模板"""
         # 基础替换
         replacements = {
-            "{protagonist}": self.character_mapping.get("protagonist", "李明"),
+            "{protagonist}": self.character_mapping.get("protagonist", "主角"),
             "{father}": self.character_mapping.get("father", "父亲"),
             "{mother}": self.character_mapping.get("mother", "母亲"),
             "{teacher}": self.character_mapping.get("math_teacher", "老师"),
             "{friend}": self.character_mapping.get("best_friend", "朋友"),
             "{bully}": self.character_mapping.get("bully", "同学"),
             "{competitor}": self.character_mapping.get("competitor", "同学"),
-            "{subject}": random.choice(["数学", "语文", "英语", "物理", "化学"])
+            "{subject}": self._get_random_subject()
         }
         
         event = template
@@ -84,6 +85,23 @@ class EventGenerator:
             event = event.replace(key, value)
             
         return event
+    
+    def _get_random_subject(self) -> str:
+        """获取随机科目"""
+        # 如果配置中有科目列表，使用配置的
+        if self.config and hasattr(self.config, 'SUBJECTS'):
+            return random.choice(self.config.SUBJECTS)
+        
+        # 否则根据场景类型返回默认科目
+        if self.config and hasattr(self.config, 'SCENARIO_TYPE'):
+            scenario_type = self.config.SCENARIO_TYPE
+            if scenario_type == "university":
+                return random.choice(["高等数学", "计算机科学", "英语", "专业课", "通识课"])
+            elif scenario_type == "workplace":
+                return random.choice(["项目报告", "技术方案", "业务分析", "客户提案", "工作总结"])
+        
+        # 默认高中科目
+        return random.choice(["数学", "语文", "英语", "物理", "化学"])
     
     async def _enhance_event_with_ai(self, 
                                     base_event: str, 
@@ -106,7 +124,7 @@ class EventGenerator:
         要求：
         1. 保持原事件的核心内容
         2. 添加具体的细节（时间、地点、对话片段等）
-        3. 描述要符合青少年的真实生活
+        3. 描述要符合角色的真实生活背景
         4. 长度控制在50-100字
         5. 保留所有人物名称不变
         
@@ -125,6 +143,37 @@ class EventGenerator:
                                 sentiment: str,
                                 state: Dict) -> Tuple[str, List[str], int]:
         """当没有合适模板时，完全由AI生成事件"""
+        # 获取主角信息
+        protagonist_name = self.character_mapping.get("protagonist", "主角")
+        
+        # 如果有配置，尝试获取更详细的信息
+        protagonist_info = {"name": protagonist_name, "age": 17, "description": "学生"}
+        if self.config and hasattr(self.config, 'CHARACTERS'):
+            for char_id, char_info in self.config.CHARACTERS.items():
+                if char_info.get('role') == 'protagonist' or char_info.get('name') == protagonist_name:
+                    protagonist_info = char_info
+                    break
+        
+        # 构建可用角色列表
+        available_roles = []
+        
+        # 从 character_mapping 构建角色列表
+        role_mapping = {
+            "father": "父亲",
+            "mother": "母亲", 
+            "math_teacher": "数学老师",
+            "best_friend": "好友",
+            "bully": "霸凌者",
+            "competitor": "竞争对手"
+        }
+        
+        for char_key, char_name in self.character_mapping.items():
+            if char_key != "protagonist" and char_name:
+                role_desc = f"- {role_mapping.get(char_key, '角色')}: {char_name}"
+                available_roles.append(role_desc)
+        
+        roles_text = "\n        ".join(available_roles)
+        
         prompt = f"""
         请生成一个符合以下条件的事件：
         
@@ -132,20 +181,15 @@ class EventGenerator:
         情感倾向：{sentiment}（积极/消极/中性）
         
         主角信息：
-        - 姓名：李明（17岁高中生）
+        - 姓名：{protagonist_info.get('name', '主角')}（{protagonist_info.get('age', 17)}岁{protagonist_info.get('description', '学生')}）
         - 当前压力：{state.get('stress_level', 5)}/10
         - 抑郁程度：{state.get('depression_level', 'MODERATE')}
         
         可用角色：
-        - 父亲：李建国
-        - 母亲：王秀芳
-        - 好友：王小明
-        - 霸凌者：刘强
-        - 竞争对手：陈优秀
-        - 数学老师：张老师
+        {roles_text}
         
         要求：
-        1. 事件要真实、符合高中生活
+        1. 事件要真实、符合角色背景
         2. 明确包含相关人物
         3. 50-100字的描述
         4. 避免过于戏剧化
@@ -161,7 +205,8 @@ class EventGenerator:
             return event, participants, impact
         except Exception as e:
             self.logger.error(f"AI生成事件失败: {e}")
-            return "李明度过了平凡的一天", ["李明"], 0
+            protagonist_name = self.character_mapping.get("protagonist", "主角")
+            return f"{protagonist_name}度过了平凡的一天", [protagonist_name], 0
     
     def _extract_participants(self, event: str) -> List[str]:
         """从事件描述中提取参与者"""
@@ -173,7 +218,7 @@ class EventGenerator:
                 participants.append(char_name)
         
         # 确保主角始终在参与者列表中
-        protagonist = self.character_mapping.get("protagonist", "李明")
+        protagonist = self.character_mapping.get("protagonist", "主角")
         if protagonist not in participants:
             participants.insert(0, protagonist)
             
