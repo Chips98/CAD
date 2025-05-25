@@ -68,21 +68,33 @@ class EventGenerator:
     
     def _fill_template(self, template: str, state: Dict) -> str: 
         """填充事件模板"""
-        # 基础替换
-        replacements = {
-            "{protagonist}": self.character_mapping.get("protagonist", "主角"),
-            "{father}": self.character_mapping.get("father", "父亲"),
-            "{mother}": self.character_mapping.get("mother", "母亲"),
-            "{teacher}": self.character_mapping.get("math_teacher", "老师"),
-            "{friend}": self.character_mapping.get("best_friend", "朋友"),
-            "{bully}": self.character_mapping.get("bully", "同学"),
-            "{competitor}": self.character_mapping.get("competitor", "同学"),
-            "{subject}": self._get_random_subject()
-        }
+        # 自动构建替换规则
+        replacements = {}
         
+        # 1. 从character_mapping自动生成所有角色的替换规则
+        for char_id, char_name in self.character_mapping.items():
+            # 生成占位符格式 {char_id}
+            placeholder = f"{{{char_id}}}"
+            replacements[placeholder] = char_name
+        
+        # 2. 添加特殊的非角色占位符
+        special_replacements = {
+            "{subject}": self._get_random_subject(),
+            "{time}": self._get_random_time(),
+            "{location}": self._get_random_location(),
+        }
+        replacements.update(special_replacements)
+        
+        # 3. 执行替换
         event = template
-        for key, value in replacements.items():
-            event = event.replace(key, value)
+        for placeholder, value in replacements.items():
+            event = event.replace(placeholder, value)
+        
+        # 4. 检查是否有未替换的占位符（用于调试）
+        import re
+        unmatched = re.findall(r'\{(\w+)\}', event)
+        if unmatched:
+            self.logger.warning(f"未匹配的占位符: {unmatched}")
             
         return event
     
@@ -102,6 +114,24 @@ class EventGenerator:
         
         # 默认高中科目
         return random.choice(["数学", "语文", "英语", "物理", "化学"])
+    
+    def _get_random_time(self) -> str:
+        """获取随机时间描述"""
+        times = ["早上", "上午", "中午", "下午", "傍晚", "晚上", "深夜"]
+        return random.choice(times)
+    
+    def _get_random_location(self) -> str:
+        """获取随机地点"""
+        # 根据场景类型返回不同的地点
+        if self.config and hasattr(self.config, 'SCENARIO_TYPE'):
+            scenario_type = self.config.SCENARIO_TYPE
+            if scenario_type == "university":
+                return random.choice(["教室", "图书馆", "宿舍", "食堂", "操场", "实验室"])
+            elif scenario_type == "workplace":
+                return random.choice(["办公室", "会议室", "茶水间", "电梯间", "停车场"])
+        
+        # 默认高中场景
+        return random.choice(["教室", "操场", "食堂", "图书馆", "走廊"])
     
     async def _enhance_event_with_ai(self, 
                                     base_event: str, 
@@ -157,20 +187,39 @@ class EventGenerator:
         # 构建可用角色列表
         available_roles = []
         
-        # 从 character_mapping 构建角色列表
-        role_mapping = {
-            "father": "父亲",
-            "mother": "母亲", 
-            "math_teacher": "数学老师",
-            "best_friend": "好友",
-            "bully": "霸凌者",
-            "competitor": "竞争对手"
-        }
-        
-        for char_key, char_name in self.character_mapping.items():
-            if char_key != "protagonist" and char_name:
-                role_desc = f"- {role_mapping.get(char_key, '角色')}: {char_name}"
-                available_roles.append(role_desc)
+        # 从 character_mapping 和配置构建角色列表
+        for char_id, char_name in self.character_mapping.items():
+            if char_id != "protagonist" and char_name:
+                # 尝试从配置中获取角色描述
+                role_desc = "角色"  # 默认描述
+                
+                if self.config and hasattr(self.config, 'CHARACTERS'):
+                    char_config = self.config.CHARACTERS.get(char_id, {})
+                    # 尝试获取角色类型或描述
+                    if 'role_type' in char_config:
+                        role_desc = char_config['role_type']
+                    elif 'description' in char_config:
+                        role_desc = char_config['description']
+                    elif 'type' in char_config:
+                        # 从类型推断角色描述
+                        type_mapping = {
+                            "FatherAgent": "父亲",
+                            "MotherAgent": "母亲",
+                            "TeacherAgent": "老师",
+                            "ClassmateAgent": "同学",
+                            "BestFriendAgent": "好友",
+                            "BullyAgent": "霸凌者",
+                            "SiblingAgent": "兄弟姐妹"
+                        }
+                        role_desc = type_mapping.get(char_config['type'], "角色")
+                    
+                    # 检查extra_params中的关系描述
+                    if 'extra_params' in char_config:
+                        if 'relationship_with_protagonist' in char_config['extra_params']:
+                            role_desc = char_config['extra_params']['relationship_with_protagonist']
+                
+                role_line = f"- {role_desc}: {char_name}"
+                available_roles.append(role_line)
         
         roles_text = "\n        ".join(available_roles)
         

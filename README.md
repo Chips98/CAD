@@ -165,6 +165,7 @@ python main.py
 # 指定配置文件运行
 python main.py -c sim_config.simulation_config  # 默认配置
 python main.py -c sim_config.example_custom_config  # 自定义配置示例
+python main.py -c sim_config.enhanced_config_example  # 增强配置示例
 
 # 查看帮助
 python main.py -h
