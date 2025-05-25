@@ -206,6 +206,24 @@ python start_therapy_from_logs.py
 - 系统会根据患者当前状态调整回应方式
 - 恶化也是可能的，需要调整咨询策略
 
+### 🎨 自定义模拟场景
+
+系统支持创建自定义的心理健康模拟场景。您可以：
+
+#### 重要说明：配置文件夹结构
+
+模拟配置文件存放在 `sim_config/` 文件夹中：
+- `sim_config/simulation_config.py` - 默认的青少年抑郁症模拟配置
+- `sim_config/example_custom_config.py` - 大学生就业压力场景示例
+
+#### 创建自定义配置
+1. 复制 `sim_config/simulation_config.py` 为新文件（如 `sim_config/my_scenario.py`）
+2. 编辑新文件，修改人物、关系、事件模板等配置
+3. 使用命令行参数运行：
+   ```bash
+   python main.py -c sim_config.my_scenario
+   ```
+
 ## 📋 系统结构
 
 ```
@@ -239,23 +257,7 @@ Adolescent-Depression-Simulator/
 └── config.py                 # 配置文件
 ``` 
 
-## 🎨 自定义模拟场景
 
-系统支持创建自定义的心理健康模拟场景。您可以：
-
-### 重要说明：配置文件夹结构
-
-模拟配置文件存放在 `sim_config/` 文件夹中：
-- `sim_config/simulation_config.py` - 默认的青少年抑郁症模拟配置
-- `sim_config/example_custom_config.py` - 大学生就业压力场景示例
-
-### 创建自定义配置
-1. 复制 `sim_config/simulation_config.py` 为新文件（如 `sim_config/my_scenario.py`）
-2. 编辑新文件，修改人物、关系、事件模板等配置
-3. 使用命令行参数运行：
-   ```bash
-   python main.py -c sim_config.my_scenario
-   ```
 
 
 
