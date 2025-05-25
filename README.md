@@ -1,4 +1,4 @@
-# 心理健康Agent模拟框架
+# 抑郁症Agent模拟框架
 
 <div style="text-align: center;">
   <img src="https://github.com/user-attachments/assets/4fedb65a-5774-440a-810e-ef3c550072f5" width="300" alt="depression">
