@@ -4,7 +4,7 @@
 GEMINI_API_KEY = ""
 
 # DeepSeek API配置
-DEEPSEEK_API_KEY = "sk-e8c693550b8e4cf1a5541a7d7157dea1"  # 请填入您的DeepSeek API密钥
+DEEPSEEK_API_KEY = ""  # 请填入您的DeepSeek API密钥
 DEEPSEEK_BASE_URL = "https://api.deepseek.com"  # DeepSeek API基础URL
 
 # 模型选择配置
