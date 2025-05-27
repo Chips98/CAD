@@ -354,10 +354,42 @@ class SimulationEngine:
         except IOError as e:
             self.logger.error(f"无法写入每日状态文件: {e}")
     
+    def _validate_json_structure(self, obj, path="root"):
+        """验证JSON结构，检查是否有不可序列化的对象"""
+        try:
+            if isinstance(obj, dict):
+                for key, value in obj.items():
+                    self._validate_json_structure(value, f"{path}.{key}")
+            elif isinstance(obj, list):
+                for i, item in enumerate(obj):
+                    self._validate_json_structure(item, f"{path}[{i}]")
+            elif isinstance(obj, (str, int, float, bool, type(None))):
+                # 这些类型都是JSON安全的
+                pass
+            else:
+                # 检查是否有__dict__属性，可能是对象
+                if hasattr(obj, '__dict__'):
+                    raise ValueError(f"在路径 {path} 发现不可序列化的对象: {type(obj)}")
+                # 尝试转换为字符串
+                str(obj)
+        except Exception as e:
+            self.logger.error(f"JSON结构验证失败在路径 {path}: {e}")
+            raise
+
     async def _generate_final_report(self):
         """生成最终报告"""
         if not self.protagonist:
             return {}
+        
+        # 获取主角的角色配置信息
+        protagonist_config = self.config.CHARACTERS.get("protagonist", {})
+        character_profile = {
+            "name": protagonist_config.get("name", self.protagonist.name),
+            "age": protagonist_config.get("age", self.protagonist.age),
+            "personality": protagonist_config.get("personality", {}),
+            "background": protagonist_config.get("background", {}),
+            "initial_relationships": protagonist_config.get("relationships", {})
+        }
             
         report = {
             "simulation_summary": {
@@ -368,6 +400,7 @@ class SimulationEngine:
                 "total_events": len(self.simulation_log),
                 "event_variety_score": self.event_generator.get_event_variety_score()
             },
+            "protagonist_character_profile": character_profile,
             "protagonist_journey": {
                 "initial_state": "健康",
                 "final_state": self.protagonist.get_status_summary(),
@@ -410,10 +443,24 @@ class SimulationEngine:
         # 保存报告
         final_report_file = self.simulation_log_dir / "final_report.json"
         try:
+            # 验证JSON结构
+            self._validate_json_structure(report)
+            
             with open(final_report_file, "w", encoding="utf-8") as f:
                 json.dump(report, f, ensure_ascii=False, indent=2)
             self.logger.info(f"最终报告已保存到: {final_report_file}")
+            
+            # 验证生成的JSON格式是否正确
+            try:
+                with open(final_report_file, "r", encoding="utf-8") as f:
+                    json.load(f)
+                self.logger.info("JSON格式验证通过")
+            except json.JSONDecodeError as json_error:
+                self.logger.error(f"生成的JSON格式有误: {json_error}")
+                
         except IOError as e:
             self.logger.error(f"无法写入最终报告文件: {e}")
+        except ValueError as e:
+            self.logger.error(f"JSON结构验证失败: {e}")
             
         return report 

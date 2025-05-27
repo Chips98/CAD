@@ -71,16 +71,22 @@ class TherapySessionManager:
         journey = report_data.get("protagonist_journey", {})
         events = report_data.get("significant_events", []) # 这是报告中定义的"重要"事件
         simulation_summary = report_data.get("simulation_summary", {})
+        character_profile = report_data.get("protagonist_character_profile", {})
+        
         source_desc = f"最终报告 ({file_path.name})" 
         if is_part_of_all_history:
             source_desc = f"完整历史数据 (基于 {file_path.name})"
+        
+        # 从character_profile获取角色信息，如果没有则使用默认值
+        protagonist_name = character_profile.get("name", "李明")
+        protagonist_age = character_profile.get("age", 17)
         
         formatted_data = {
             "data_source_file": str(file_path), 
             "data_source": source_desc,
             "simulation_id": simulation_summary.get("simulation_id", file_path.parent.name if file_path.parent.name.startswith("sim_") else None),
-            "name": "李明", # 假设主角总是李明
-            "age": 17,     # 假设年龄固定，或从报告中提取
+            "name": protagonist_name,
+            "age": protagonist_age,
             "depression_level": simulation_summary.get("final_depression_level", "SEVERE"),
             "final_state_description": journey.get("final_state", ""), # Renamed from final_state to avoid confusion
             "symptoms": journey.get("key_symptoms", []),
@@ -90,7 +96,8 @@ class TherapySessionManager:
             "full_event_log": [], # 用于存储所有每日事件（如果加载全部历史）
             "total_days": simulation_summary.get("total_days", 30),
             "total_events_in_report": simulation_summary.get("total_events", 0),
-            "ai_analysis": report_data.get("ai_analysis", "") # 添加AI分析
+            "ai_analysis": report_data.get("ai_analysis", ""), # 添加AI分析
+            "protagonist_character_profile": character_profile  # 添加角色配置信息
         }
         return formatted_data
 
@@ -170,16 +177,18 @@ class TherapySessionManager:
                         console.print(f"[green]已加载基础最终报告: {final_report_file.name}[/green]")
                     else:
                         console.print(f"[yellow]警告: 在 {sim_run_path.name} 中未找到 final_report.json。'all_history' 将只包含每日事件。[/yellow]")
+                        self.patient_data = {}  # 初始化空字典
                         self.patient_data["data_source"] = f"完整历史数据 (无最终报告，来自 {sim_run_path.name})"
                         self.patient_data["simulation_id"] = self.current_simulation_id
-                        self.patient_data["name"] = "李明 (历史数据)"
+                        self.patient_data["name"] = "主角 (历史数据)"
                         self.patient_data["age"] = 17
                         # ...可以尝试从最新的每日数据补充一些基础信息
                 
                 if load_type == "all_daily_events_only" and not self.patient_data:
+                     self.patient_data = {}  # 初始化空字典
                      self.patient_data["data_source"] = f"所有每日事件 (来自 {sim_run_path.name})"
                      self.patient_data["simulation_id"] = self.current_simulation_id
-                     self.patient_data["name"] = "李明 (每日历史)"
+                     self.patient_data["name"] = "主角 (每日历史)"
                      # ... (可能需要从最新一天获取一些基础信息)
 
                 def extract_day_number_from_file(day_file_path):
@@ -523,8 +532,9 @@ class TherapySessionManager:
         recent_conversation = ""
         if self.conversation_history:
             history_to_use = self.conversation_history[-self.conversation_history_length:]
+            patient_name = self.patient_data.get('name', '李明')
             recent_conversation = "\n".join([
-                f"咨询师: {conv.get('therapist', '')}\n李明: {conv.get('patient', '')}"
+                f"咨询师: {conv.get('therapist', '')}\n{patient_name}: {conv.get('patient', '')}"
                 for conv in history_to_use
             ])
             if len(self.conversation_history) > self.conversation_history_length:
@@ -638,13 +648,7 @@ class TherapySessionManager:
         {events_text}
 
         你的性格特点：
-        - {self.patient_data.get('age', 17)}岁高中生，通常被描述为内向、敏感。
-        - 因为经历的创伤而变得更加消极和自我保护。
-        - 对他人有防备心理，但内心深处可能渴望被理解和帮助。
-        - 容易自我责备，认为问题都是自己造成的。
-        - 表达方式符合青少年特点，有时可能不直接或带有情绪。
-        {"- 由于拥有完整的发展历程记忆，你对自己的问题演变过程有深刻但痛苦的认识。" if has_full_history else ""}
-        {"- 如果治疗有进展，你可能会表现出一些希望的迹象，但仍然谨慎。" if recovery_context and "改善" in recovery_context else ""}
+        {chr(10).join([f"- {trait}" for trait in self._get_personality_traits_description()])}
 
         对话背景：
         {context_note} (对话历史长度配置为 {self.conversation_history_length} 轮)
@@ -682,7 +686,7 @@ class TherapySessionManager:
             return response.strip()
         except Exception as e:
             console.print(f"[red]生成患者回应时出错: {e}[/red]")
-            return "（李明沉默不语，看起来很难受...也许是网络或API出错了。）"
+            return "（患者沉默不语，看起来很难受...也许是网络或API出错了。）"
 
     async def get_therapist_supervision(self, therapist_input: str, patient_response: str, supervision_interval: int = 3) -> str:
         """获取对当前对话交互的专业督导建议。"""
@@ -692,8 +696,9 @@ class TherapySessionManager:
             if self.conversation_history:
                 # 获取最近n轮对话作为上下文，n等于督导间隔
                 recent_conversations = self.conversation_history[-min(supervision_interval, len(self.conversation_history)):]
+                patient_name = self.patient_data.get('name', '李明') if self.patient_data else '患者'
                 conversation_context = "\n".join([
-                    f"咨询师: {conv.get('therapist', '')}\n李明: {conv.get('patient', '')}"
+                    f"咨询师: {conv.get('therapist', '')}\n{patient_name}: {conv.get('patient', '')}"
                     for conv in recent_conversations
                 ])
                 if len(self.conversation_history) > supervision_interval:
@@ -1113,6 +1118,91 @@ class TherapySessionManager:
             expand       = False
         ))
 
+    def _get_personality_traits_description(self) -> List[str]:
+        """从患者数据中获取角色性格特点描述"""
+        personality_traits = []
+        
+        # 先尝试从patient_data中的protagonist_character_profile获取
+        character_profile = self.patient_data.get('protagonist_character_profile', {}) if self.patient_data else {}
+        
+        if character_profile and character_profile.get('personality'):
+            personality_config = character_profile['personality']
+            name = character_profile.get('name', '主角')
+            age = character_profile.get('age', 17)
+            
+            # 从配置中构建性格描述
+            traits = personality_config.get('traits', [])
+            if traits:
+                traits_text = '、'.join(traits[:4])  # 取前4个特征
+                personality_traits.append(f"{age}岁的{name}，性格特点：{traits_text}。")
+            
+            # 添加五大人格特征描述（如果有的话）
+            big_five_traits = []
+            if 'openness' in personality_config:
+                openness = personality_config['openness']
+                if openness >= 7:
+                    big_five_traits.append("对新体验较为开放")
+                elif openness <= 3:
+                    big_five_traits.append("偏好熟悉的环境和经历")
+            
+            if 'conscientiousness' in personality_config:
+                conscientiousness = personality_config['conscientiousness']
+                if conscientiousness >= 7:
+                    big_five_traits.append("有很强的自制力和责任感")
+                elif conscientiousness <= 3:
+                    big_five_traits.append("在规划和执行方面较为随意")
+            
+            if 'extraversion' in personality_config:
+                extraversion = personality_config['extraversion']
+                if extraversion >= 7:
+                    big_five_traits.append("性格外向、善于社交")
+                elif extraversion <= 3:
+                    big_five_traits.append("性格内向、喜欢独处")
+            
+            if 'agreeableness' in personality_config:
+                agreeableness = personality_config['agreeableness']
+                if agreeableness >= 7:
+                    big_five_traits.append("待人友善、富有同情心")
+                elif agreeableness <= 3:
+                    big_five_traits.append("在人际关系中较为直接，不太妥协")
+            
+            if 'neuroticism' in personality_config:
+                neuroticism = personality_config['neuroticism']
+                if neuroticism >= 7:
+                    big_five_traits.append("情绪敏感、容易焦虑")
+                elif neuroticism <= 3:
+                    big_five_traits.append("情绪稳定、抗压能力强")
+            
+            if big_five_traits:
+                personality_traits.append("从人格特质来看：" + "，".join(big_five_traits) + "。")
+            
+            # 添加背景信息
+            background = character_profile.get('background', {})
+            if 'family_situation' in background:
+                personality_traits.append(f"家庭背景：{background['family_situation']}。")
+            
+            if 'academic_performance' in background:
+                personality_traits.append(f"学业表现：{background['academic_performance']}。")
+            
+            # 根据当前状态添加心理状态相关的描述
+            personality_traits.append("因为近期的经历，变得更加消极和自我保护。")
+            personality_traits.append("对他人有防备心理，但内心深处渴望被理解和帮助。")
+            personality_traits.append("容易自我责备，认为问题都是自己造成的。")
+            personality_traits.append("表达方式符合青少年特点，有时可能不直接或带有情绪。")
+            
+            return personality_traits
+        
+        # 如果没有配置信息，返回默认性格特点
+        age = self.patient_data.get('age', 17) if self.patient_data else 17
+        personality_traits = [
+            f"{age}岁高中生，通常被描述为内向、敏感。",
+            "因为经历的创伤而变得更加消极和自我保护。",
+            "对他人有防备心理，但内心深处可能渴望被理解和帮助。",
+            "容易自我责备，认为问题都是自己造成的。",
+            "表达方式符合青少年特点，有时可能不直接或带有情绪。"
+        ]
+        return personality_traits
+
 # 示例用法 (后续会移除或放到测试/demo中)
 if __name__ == '__main__':
     async def test_interactive_session():
@@ -1141,9 +1231,25 @@ if __name__ == '__main__':
             
             sample_final_report_content = {
                 "simulation_summary": {"total_days": 30, "final_stage": "抑郁发展", "final_depression_level": "SEVERE", "total_events": 150},
+                "protagonist_character_profile": {
+                    "name": "李明", 
+                    "age": 17,
+                    "personality": {
+                        "traits": ["内向", "敏感", "聪明", "善良"],
+                        "openness": 6,
+                        "conscientiousness": 7,
+                        "extraversion": 3,
+                        "agreeableness": 8,
+                        "neuroticism": 7
+                    },
+                    "background": {
+                        "family_situation": "单亲家庭，与母亲同住",
+                        "academic_performance": "成绩优秀但压力较大"
+                    }
+                },
                 "protagonist_journey": {"initial_state": "健康", "final_state": "抑郁, 压力9/10, 自尊0/10", "key_symptoms": ["情绪低落", "失眠", "食欲差"], "risk_factors": ["霸凌", "孤立", "学业压力"]},
                 "significant_events": [{"description": f"事件{i}", "impact_score": -i} for i in range(1, test_max_events + 3)], 
-                "ai_analysis": "这是一个AI对整个模拟过程的分析总结...非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常长的一段文本，用于测试摘要功能。" * 10
+                "ai_analysis": "这是一个AI对整个模拟过程的分析总结...非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常长的一段文本，用于测试摘要功能。" * 10
             }
             with open(sample_final_report_path, "w", encoding="utf-8") as f:
                 json.dump(sample_final_report_content, f, ensure_ascii=False, indent=2)

@@ -46,7 +46,7 @@ CHARACTERS = {
             "nurturing_instinct": 9
         }
     },
-    "math_teacher": {
+    "teacher": {
         "type": "TeacherAgent",
         "name": "张老师",
         "age": 38,
@@ -61,7 +61,7 @@ CHARACTERS = {
             "subject": "数学"
         }
     },
-    "best_friend": {
+    "friend": {
         "type": "BestFriendAgent",
         "name": "王小明",
         "age": 17,
