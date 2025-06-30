@@ -1,0 +1,147 @@
+{
+  "description": "AI-AI对话治疗专用配置",
+  "therapy_effectiveness": {
+    "description": "治疗有效性配置参数（AI-AI优化）",
+    "base_improvement_factor": 0.4,
+    "max_improvement_per_turn": 0.6,
+    "min_improvement_per_turn": 0.1,
+    "technique_weight": 0.3,
+    "openness_weight": 0.4,
+    "connection_weight": 0.3
+  },
+  "cad_state_changes": {
+    "description": "CAD认知模型状态变化参数（优化同步性）",
+    "core_beliefs": {
+      "self_belief_change_rate": 0.15,
+      "world_belief_change_rate": 0.15,
+      "future_belief_change_rate": 0.15,
+      "stability_factor": 0.90
+    },
+    "cognitive_processing": {
+      "rumination_reduction_rate": 0.16,
+      "distortions_reduction_rate": 0.16,
+      "positive_reframe_bonus": 0.08,
+      "stability_factor": 0.90
+    },
+    "behavioral_patterns": {
+      "social_withdrawal_change_rate": 0.15,
+      "avolition_change_rate": 0.15,
+      "activation_bonus": 0.08,
+      "stability_factor": 0.90
+    },
+    "affective_tone_change_rate": 0.18,
+    "therapy_response_modifier": 1.0,
+    "correction_factor": 0.96,
+    "synchronization_factor": 0.12
+  },
+  "depression_level_progression": {
+    "description": "抑郁程度变化设置（10级精细分级）",
+    "improvement_threshold": 1.5,
+    "deterioration_threshold": 1.0,
+    "level_change_delay_turns": 3,
+    "recovery_acceleration_factor": 1.15,
+    "cad_score_improvement_threshold": 2.0,
+    "multi_dimensional_check": true
+  },
+  "supervision_settings": {
+    "description": "督导功能设置（AI-AI场景）",
+    "supervision_interval": 5,
+    "evaluation_interval": 2,
+    "risk_threshold": 0.6,
+    "progress_threshold": 0.25,
+    "supervision_depth": "moderate"
+  },
+  "conversation_settings": {
+    "description": "AI-AI对话专用设置",
+    "conversation_history_length": 15,
+    "max_events_to_show": 15,
+    "enable_supervision": true,
+    "supervision_analysis_depth": "MODERATE",
+    "max_turns": 50,
+    "auto_save_interval": 5
+  },
+  "ai_patient_behavior": {
+    "description": "AI患者行为模式",
+    "openness_progression_rate": 0.15,
+    "resistance_decay_rate": 0.10,
+    "emotional_volatility": 0.3,
+    "insight_development_rate": 0.12
+  },
+  "ai_therapist_behavior": {
+    "description": "AI治疗师行为模式",
+    "technique_adaptation_rate": 0.2,
+    "empathy_consistency": 0.9,
+    "intervention_timing_optimization": 0.8,
+    "progress_monitoring_frequency": 3
+  },
+  "emotional_state_dynamics": {
+    "description": "情绪状态动态变化（AI优化）",
+    "stress_reduction_rate": 0.35,
+    "self_esteem_improvement_rate": 0.25,
+    "social_connection_enhancement_rate": 0.20,
+    "academic_pressure_relief_rate": 0.15
+  },
+  "therapy_techniques_effectiveness": {
+    "description": "不同治疗技术的效果权重（AI-AI场景）",
+    "cognitive_restructuring": 0.7,
+    "emotional_validation": 0.8,
+    "behavioral_activation": 0.6,
+    "mindfulness_techniques": 0.5,
+    "solution_focused_therapy": 0.6,
+    "psychoeducation": 0.4
+  },
+  "patient_response_analysis": {
+    "description": "患者回应分析权重（AI-AI优化）",
+    "positive_indicators_weight": {
+      "gratitude_expressions": 0.7,
+      "insight_statements": 0.8,
+      "commitment_to_change": 0.6,
+      "emotional_openness": 0.5
+    },
+    "negative_indicators_weight": {
+      "resistance_expressions": -0.4,
+      "hopelessness_statements": -0.6,
+      "withdrawal_behaviors": -0.3,
+      "therapy_devaluation": -0.5
+    }
+  },
+  "recovery_milestones": {
+    "description": "恢复里程碑设置（AI-AI场景）",
+    "early_stage": {
+      "cad_improvement_threshold": 0.8,
+      "session_count": 4
+    },
+    "middle_stage": {
+      "cad_improvement_threshold": 2.0,
+      "session_count": 10
+    },
+    "advanced_stage": {
+      "cad_improvement_threshold": 3.5,
+      "session_count": 18
+    }
+  },
+  "therapy_thresholds": {
+    "breakthrough_threshold": 7.0,
+    "resistance_threshold": 3.5,
+    "alliance_building_threshold": 5.5,
+    "crisis_intervention_threshold": 2.5
+  },
+  "state_bounds": {
+    "min_cad_value": -10.0,
+    "max_cad_value": 10.0,
+    "min_depression_improvement": 0.1,
+    "max_depression_change_per_session": 0.8
+  },
+  "automation_settings": {
+    "description": "自动化治疗专用设置",
+    "auto_termination_conditions": {
+      "max_turns_reached": true,
+      "significant_improvement": true,
+      "deterioration_detected": true,
+      "plateau_detected": true
+    },
+    "progress_tracking_frequency": 3,
+    "effectiveness_evaluation_interval": 5,
+    "report_generation_frequency": 10
+  }
+} 

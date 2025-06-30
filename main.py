@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+# 首先导入utils包以设置终端编码
+import utils
+
 import asyncio
 import logging
 import os
@@ -23,6 +26,7 @@ sys.path.append(str(Path(__file__).resolve().parent))
 from core.ai_client_factory import ai_client_factory
 from core.simulation_engine import SimulationEngine
 from core.therapy_session_manager import TherapySessionManager
+from config.scenario_selector import select_scenario_interactive
 
 
 logger = logging.getLogger()
@@ -72,35 +76,76 @@ def cleanup_simulation_logging():
         current_simulation_file_handler.close()
         current_simulation_file_handler = None
 
-def load_config():
-    """加载配置"""
+def load_config(scenario_name: str = "default_adolescent", use_temp_config: bool = False, temp_name: str = "web_temp"):
+    """
+    加载配置
+    
+    Args:
+        scenario_name: 场景名称
+        use_temp_config: 是否使用临时配置（Web界面使用）
+        temp_name: 临时配置名称
+    """
     try:
-        import config
-        history_length = getattr(config, 'CONVERSATION_HISTORY_LENGTH', 5)
-        max_events = getattr(config, 'MAX_EVENTS_TO_SHOW', 5)
+        # 使用新的JSON配置系统
+        from config.config_loader import load_complete_config, load_temp_config
+        
+        # 加载完整配置
+        if use_temp_config:
+            # 尝试加载临时配置
+            temp_config = load_temp_config(temp_name)
+            if temp_config:
+                console.print(f"[cyan]使用临时配置: {temp_name}[/cyan]")
+                config_data = temp_config
+            else:
+                console.print("[yellow]未找到临时配置，使用默认配置[/yellow]")
+                config_data = load_complete_config(scenario_name)
+        else:
+            config_data = load_complete_config(scenario_name)
+        
+        if not config_data:
+            console.print("[red]错误: 配置加载失败[/red]")
+            return None
         
         # 检查可用的AI提供商
         available_providers = ai_client_factory.get_available_providers()
-        default_provider = getattr(config, 'DEFAULT_MODEL_PROVIDER', 'gemini')
+        default_provider = config_data.get('default_provider', 'deepseek')
         
         if not available_providers:
             console.print("[red]错误: 未配置任何AI提供商的API密钥[/red]")
-            console.print("[yellow]请在config.py中配置GEMINI_API_KEY或DEEPSEEK_API_KEY[/yellow]")
+            console.print("[yellow]请在config/api_config.json中配置API密钥[/yellow]")
             return None
         
-        return {
+        # 返回格式化的配置，保持向后兼容
+        formatted_config = {
             'available_providers': available_providers,
             'default_provider': default_provider,
-            'simulation_speed': getattr(config, 'SIMULATION_SPEED', 1),
-            'depression_stages': getattr(config, 'DEPRESSION_DEVELOPMENT_STAGES', 5),
-            'conversation_history_length': history_length,
-            'max_events_to_show': max_events
+            'simulation_speed': config_data.get('simulation_speed', 1),
+            'depression_stages': config_data.get('depression_development_stages', 5),
+            'interaction_frequency': config_data.get('interaction_frequency', 3),
+            'conversation_history_length': config_data.get('conversation_history_length', 20),
+            'max_events_to_show': config_data.get('max_events_to_show', 20),
+            'simulation_days': config_data.get('simulation_days', 30),
+            'events_per_day': config_data.get('events_per_day', 5),
+            'enable_supervision': config_data.get('enable_supervision', True),
+            'supervision_interval': config_data.get('supervision_interval', 5),
+            'log_level': config_data.get('log_level', 'INFO'),
+            'protagonist_name': config_data.get('protagonist_name', '李明'),
+            'protagonist_age': config_data.get('protagonist_age', 17),
+            'scenario_name': scenario_name,
+            # 从load_complete_config返回的数据中获取scenario字段
+            'scenario': config_data.get('scenario', {
+                'name': scenario_name,
+                'description': ''
+            }),
+            # 保存完整配置用于引擎初始化
+            'complete_config': config_data
         }
-    except ImportError:
-        console.print("[red]错误: 请复制 config_example.py 为 config.py 并配置您的API密钥和可选设置。[/red]")
-        return None
-    except AttributeError as e:
-        console.print(f"[red]错误: config.py 文件缺少必要的属性: {e}。请检查或使用config_example.py更新。[/red]")
+        
+        return formatted_config
+        
+    except Exception as e:
+        console.print(f"[red]错误: 配置加载失败: {e}[/red]")
+        console.print("[yellow]请检查config/目录下的配置文件[/yellow]")
         return None
 
 def select_ai_provider(available_providers: list, default_provider: str) -> str:
@@ -299,13 +344,16 @@ def display_results_summary(report_path: str):
 
 def display_menu():
     """显示主菜单"""
+    config_data = load_config()
     menu_table = Table(title="🧠 心理健康Agent系统")
     menu_table.add_column("选项", style="cyan", no_wrap=True)
     menu_table.add_column("功能描述", style="green")
     
-    menu_table.add_row("1", "运行心理健康模拟（30天）")
-    menu_table.add_row("2", "与模拟主角进行心理咨询对话")
-    menu_table.add_row("3", "查看现有模拟报告")
+    menu_table.add_row("1", f"运行心理健康模拟（{config_data['simulation_days']}天）")
+    menu_table.add_row("2", "与模拟主角进行人工治疗师对话")
+    menu_table.add_row("3", "启动AI治疗师与模拟主角对话")
+    menu_table.add_row("4", "查看现有模拟报告")
+    menu_table.add_row("5", "心理模型配置")
     menu_table.add_row("0", "退出系统")
     
     console.print(menu_table)
@@ -367,6 +415,9 @@ async def main():
     parser = argparse.ArgumentParser(description='心理健康Agent模拟框架')
     parser.add_argument('-c', '--config', type=str, default='sim_config.simulation_config',
                         help='配置模块路径 (默认: sim_config.simulation_config)')
+    parser.add_argument('--model', type=str, help='指定心理模型类型')
+    parser.add_argument('--interactive-model', action='store_true', 
+                        help='交互式选择心理模型')
     args = parser.parse_args()
     
     # 存储配置模块路径
@@ -387,6 +438,25 @@ async def main():
         config_data['default_provider']
     )
     
+    # 初始化心理模型选择器
+    from models.model_selector import ModelSelector
+    model_selector = ModelSelector(console)
+    
+    # 心理模型选择
+    psychological_model = None
+    if args.interactive_model:
+        # 交互式选择
+        ai_client = ai_client_factory.get_client(selected_provider)
+        model_type, model_config = model_selector.select_model_interactive(ai_client)
+        psychological_model = model_selector.create_model_instance(model_type, model_config, ai_client)
+        console.print(f"[green]已配置心理模型: {psychological_model.get_display_name()}[/green]")
+    elif args.model:
+        # 命令行指定模型
+        ai_client = ai_client_factory.get_client(selected_provider)
+        model_type, model_config = model_selector.quick_select(args.model, ai_client)
+        psychological_model = model_selector.create_model_instance(model_type, model_config, ai_client)
+        console.print(f"[green]使用指定心理模型: {psychological_model.get_display_name()}[/green]")
+    
     try:
         # 获取AI客户端
         ai_client = ai_client_factory.get_client(selected_provider)
@@ -399,24 +469,54 @@ async def main():
             display_menu()
             
             try:
-                choice = console.input("[bold cyan]请选择功能 (0-3): [/bold cyan]").strip()
+                choice = console.input("[bold cyan]请选择功能 (0-5): [/bold cyan]").strip()
                 
                 if choice == "0":
                     console.print("[green]感谢使用心理健康Agent系统！[/green]")
                     break
                 
                 elif choice == "1":
-                    simulation_id = f"sim_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+                    # 添加剧本选择功能
+                    console.print("\n[cyan]📖 选择模拟剧本[/cyan]")
+                    selected_scenario = select_scenario_interactive("default_adolescent")
+                    
+                    # 重新加载选定剧本的配置
+                    config_data = load_config(selected_scenario)
+                    if not config_data:
+                        console.print("[red]错误: 剧本配置加载失败[/red]")
+                        continue
+                    
+                    # 如果还没有选择心理模型，提供快速选择
+                    if not psychological_model:
+                        console.print("\n[yellow]当前未配置心理模型，使用默认模型[/yellow]")
+                        try:
+                            ai_client = ai_client_factory.get_client(selected_provider)
+                            model_type, model_config = model_selector.quick_select(None, ai_client)
+                            psychological_model = model_selector.create_model_instance(model_type, model_config, ai_client)
+                        except Exception as e:
+                            console.print(f"[yellow]心理模型加载失败，将使用传统方法: {e}[/yellow]")
+                            psychological_model = None
+                    
+                    simulation_id = f"sim_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{selected_scenario}"
                     console.print(f"[cyan]准备开始新的模拟: {simulation_id}[/cyan]")
+                    
+                    # 显示使用的心理模型
+                    if psychological_model:
+                        console.print(f"[green]心理模型: {psychological_model.get_display_name()}[/green]")
+                    else:
+                        console.print("[yellow]心理模型: 传统规则系统[/yellow]")
+                    
                     setup_simulation_logging(simulation_id)
                     
                     console.print("🎭 正在设置模拟环境...")
-                    console.print(f"[cyan]使用配置: {config_module}[/cyan]")
-                    # 使用选定的AI提供商创建模拟引擎
+                    console.print(f"[cyan]使用剧本: {config_data['scenario']['name']}[/cyan]")
+                    # 使用选定的AI提供商和新的JSON配置创建模拟引擎
                     engine = SimulationEngine(
                         simulation_id  = simulation_id,
-                        config_module  = config_module,
-                        model_provider = selected_provider
+                        config_module  = config_module,  # 保持向后兼容
+                        model_provider = selected_provider,
+                        config_data    = config_data['complete_config'],  # 传递完整配置数据
+                        psychological_model = psychological_model  # 传递心理模型
                     )
                     
                     engine.setup_simulation() 
@@ -429,7 +529,7 @@ async def main():
                     console.print()
                     
                     console.print("🚀 开始心理健康模拟...")
-                    await run_simulation_with_progress(engine, days=30) 
+                    await run_simulation_with_progress(engine, days=config_data['simulation_days']) 
                     console.print()
                     console.print("📋 正在生成结果报告...")
                     
@@ -475,7 +575,7 @@ async def main():
                     
                     if not final_report_path.exists():
                         console.print(f"[red]错误: 最新的模拟运行 {latest_run_dir.name} 中未找到 final_report.json。[/red]")
-                        console.print("[yellow]请检查该模拟是否成功完成，或尝试选项 '3' 查看其他模拟。[/yellow]")
+                        console.print("[yellow]请检查该模拟是否成功完成，或尝试选项 '4' 查看其他模拟。[/yellow]")
                         continue
                     
                     console.print(f"[info]使用配置: 历史长度={manager_config['conversation_history_length']}, 事件显示={manager_config['max_events_to_show']}[/info]")
@@ -496,11 +596,71 @@ async def main():
                     else:
                         console.print(f"[red]加载患者最终状态失败: {final_report_path}[/red]")
                 
-                elif choice == "3":
+                elif choice == "3": # AI治疗师与模拟主角对话
+                    console.print("🤖 准备启动AI治疗师对话模式...")
+                    
+                    # 检查是否有可用的模拟数据
+                    logs_dir = Path("logs")
+                    simulation_runs = sorted([d for d in logs_dir.iterdir() if d.is_dir() and d.name.startswith("sim_")], reverse=True)
+
+                    if not simulation_runs:
+                        console.print("[red]错误: 未找到任何模拟运行记录。[/red]")
+                        console.print("[yellow]请先运行选项 '1' 完成一次心理健康模拟。[/yellow]")
+                        continue
+                    
+                    # 使用最新的模拟数据启动AI-AI对话
+                    latest_run_dir = simulation_runs[0]
+                    console.print(f"[info]将使用最新的模拟数据: {latest_run_dir.name}[/info]")
+                    
+                    # 导入并启动AI-AI治疗模块
+                    try:
+                        from start_ai_to_ai_therapy import main as ai_therapy_main
+                        console.print("[green]正在启动AI治疗师对话系统...[/green]")
+                        await ai_therapy_main()
+                    except ImportError as e:
+                        console.print(f"[red]错误: 无法导入AI治疗模块: {e}[/red]")
+                        console.print("[yellow]请确保start_ai_to_ai_therapy.py文件存在且可用[/yellow]")
+                    except Exception as e:
+                        console.print(f"[red]AI治疗模式运行时发生错误: {e}[/red]")
+                        logging.exception("AI治疗模式运行错误")
+                
+                elif choice == "4":
                     view_existing_reports()
                 
+                elif choice == "5":
+                    # 心理模型配置
+                    console.print("\n[cyan]🧠 心理模型配置[/cyan]")
+                    
+                    try:
+                        # 获取AI客户端
+                        ai_client = ai_client_factory.get_client(selected_provider)
+                        
+                        # 交互式选择心理模型
+                        model_type, model_config = model_selector.select_model_interactive(ai_client)
+                        psychological_model = model_selector.create_model_instance(model_type, model_config, ai_client)
+                        
+                        console.print(Panel(
+                            f"[bold green]心理模型配置完成！[/bold green]\n\n"
+                            f"模型类型: {psychological_model.get_display_name()}\n"
+                            f"模型描述: {psychological_model.get_description()}\n"
+                            f"CAD支持: {'✓' if psychological_model.supports_cad_state() else '✗'}\n"
+                            f"异步处理: {'✓' if psychological_model.supports_async_processing() else '✗'}\n\n"
+                            "配置已保存，下次运行模拟时将使用此模型。\n"
+                            "您也可以使用命令行参数 --model 指定特定模型。",
+                            title="✅ 配置完成",
+                            border_style="green"
+                        ))
+                        
+                        # 显示模型统计信息（如果有）
+                        if hasattr(psychological_model, 'get_model_info'):
+                            model_selector.display_model_statistics(psychological_model)
+                            
+                    except Exception as e:
+                        console.print(f"[red]心理模型配置失败: {e}[/red]")
+                        logging.exception("心理模型配置错误")
+                
                 else:
-                    console.print("[red]无效选择，请输入 0-3[/red]")
+                    console.print("[red]无效选择，请输入 0-5[/red]")
                 
                 console.print("\n" + "="*50 + "\n")
                 

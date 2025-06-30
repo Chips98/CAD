@@ -306,4 +306,22 @@ class TherapistAgent(BaseAgent):
         请提供具体、实用且鼓励性的专业督导建议。
         """
         
-        return await self.ai_client.generate_response(prompt) 
+        return await self.ai_client.generate_response(prompt)
+
+    async def generate_supervision(self, supervision_prompt: str, context: Dict[str, Any]) -> str:
+        """
+        生成督导建议
+        
+        Args:
+            supervision_prompt: 督导提示
+            context: 上下文信息
+            
+        Returns:
+            督导建议文本
+        """
+        try:
+            # 使用AI客户端生成督导回应
+            response = await self.ai_client.generate_response(supervision_prompt)
+            return response if response else "暂无具体督导建议，建议继续当前治疗方向。"
+        except Exception as e:
+            return f"督导系统暂时不可用，建议关注患者安全和治疗进展。错误：{str(e)}" 

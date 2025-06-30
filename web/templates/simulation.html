@@ -1,0 +1,172 @@
+{% extends "base.html" %}
+
+{% block title %}心理模拟 - 抑郁症模拟系统{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-brain"></i> 心理发展模拟
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <!-- 场景选择 -->
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <h5>选择模拟场景</h5>
+                            <div class="form-group">
+                                <select id="scenarioSelect" class="form-control">
+                                    {% for scenario in scenarios %}
+                                    <option value="{{ scenario.id }}">{{ scenario.name }}</option>
+                                    {% else %}
+                                    <option value="default">默认青少年抑郁症场景</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <h5>模拟参数</h5>
+                            <div class="form-group">
+                                <label for="simulationDays">模拟天数</label>
+                                <input type="number" id="simulationDays" class="form-control" value="30" min="1" max="90">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 控制按钮 -->
+                    <div class="row mb-4">
+                        <div class="col-md-12">
+                            <button id="startSimulation" class="btn btn-primary btn-lg">
+                                <i class="fas fa-play"></i> 开始模拟
+                            </button>
+                            <button id="stopSimulation" class="btn btn-danger" style="display: none;">
+                                <i class="fas fa-stop"></i> 停止模拟
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 实时状态显示 -->
+                    <div id="simulationStatus" style="display: none;">
+                        <div class="card bg-light">
+                            <div class="card-body">
+                                <h6>模拟状态</h6>
+                                <div class="progress mb-3">
+                                    <div id="progressBar" class="progress-bar progress-bar-striped progress-bar-animated" 
+                                         role="progressbar" style="width: 0%"></div>
+                                </div>
+                                <div id="currentStatus">准备开始模拟...</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 结果展示 -->
+                    <div id="simulationResults" style="display: none;">
+                        <h5>模拟结果</h5>
+                        <div id="resultsContent">
+                            <!-- 动态填充结果内容 -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- JavaScript -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const startBtn = document.getElementById('startSimulation');
+    const stopBtn = document.getElementById('stopSimulation');
+    const statusDiv = document.getElementById('simulationStatus');
+    const resultsDiv = document.getElementById('simulationResults');
+    
+    // 连接WebSocket
+    const socket = io();
+    
+    // 开始模拟
+    startBtn.addEventListener('click', function() {
+        const scenario = document.getElementById('scenarioSelect').value;
+        const days = document.getElementById('simulationDays').value;
+        
+        // 显示状态
+        statusDiv.style.display = 'block';
+        startBtn.style.display = 'none';
+        stopBtn.style.display = 'inline-block';
+        resultsDiv.style.display = 'none';
+        
+        // 发送开始请求
+        fetch('/api/start_simulation', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                scenario: scenario,
+                days: parseInt(days)
+            })
+        }).then(response => response.json())
+          .then(data => {
+              if (data.success) {
+                  console.log('模拟已启动');
+              } else {
+                  alert('启动失败: ' + data.error);
+                  resetUI();
+              }
+          }).catch(error => {
+              console.error('Error:', error);
+              alert('请求失败');
+              resetUI();
+          });
+    });
+    
+    // 停止模拟
+    stopBtn.addEventListener('click', function() {
+        fetch('/api/stop_simulation', {
+            method: 'POST'
+        }).then(() => {
+            resetUI();
+        });
+    });
+    
+    // 监听模拟进度
+    socket.on('simulation_progress', function(data) {
+        const progressBar = document.getElementById('progressBar');
+        const statusText = document.getElementById('currentStatus');
+        
+        progressBar.style.width = data.progress + '%';
+        progressBar.textContent = Math.round(data.progress) + '%';
+        statusText.textContent = data.status;
+    });
+    
+    // 模拟完成
+    socket.on('simulation_complete', function(data) {
+        const resultsContent = document.getElementById('resultsContent');
+        resultsContent.innerHTML = `
+            <div class="alert alert-success">
+                <h6>模拟完成！</h6>
+                <p>模拟ID: ${data.simulation_id}</p>
+                <p>耗时: ${data.duration}</p>
+                <a href="/analysis" class="btn btn-primary">查看详细报告</a>
+            </div>
+        `;
+        resultsDiv.style.display = 'block';
+        resetUI();
+    });
+    
+    // 错误处理
+    socket.on('simulation_error', function(data) {
+        alert('模拟错误: ' + data.error);
+        resetUI();
+    });
+    
+    function resetUI() {
+        startBtn.style.display = 'inline-block';
+        stopBtn.style.display = 'none';
+        statusDiv.style.display = 'none';
+    }
+});
+</script>
+{% endblock %} 

@@ -1,0 +1,394 @@
+# 通用治疗引导配置
+# 此文件控制心理治疗过程中的各种参数和阈值
+
+# 治疗有效性参数
+therapy_effectiveness:
+  description: "治疗有效性配置参数"
+  
+  # 基础改善因子
+  # 建议范围: 0.3-0.8
+  # 物理意义: 每轮治疗的基础改善幅度
+  # 较高值使治疗效果更明显，较低值更接近现实
+  base_improvement_factor: 0.5
+  
+  # 单轮最大改善幅度
+  # 建议范围: 0.5-1.5
+  # 物理意义: 单次对话能产生的最大心理状态改善
+  # 防止过度快速的康复，保持现实性
+  max_improvement_per_turn: 0.8
+  
+  # 单轮最小改善幅度
+  # 建议范围: 0.05-0.3
+  # 物理意义: 即使治疗效果不佳，也会有的最小改善
+  # 体现治疗的持续性积极作用
+  min_improvement_per_turn: 0.1
+  
+  # 治疗技术权重
+  # 建议范围: 0.2-0.6
+  # 物理意义: 治疗师使用的具体技术对疗效的影响程度
+  # 较高值意味着技术选择很重要
+  technique_weight: 0.4
+  
+  # 患者开放性权重
+  # 建议范围: 0.2-0.5
+  # 物理意义: 患者配合度和开放程度对疗效的影响
+  # 影响患者参与治疗的积极性
+  openness_weight: 0.3
+  
+  # 治疗联盟权重
+  # 建议范围: 0.2-0.5
+  # 物理意义: 治疗师与患者关系质量对疗效的影响
+  # 体现人际关系在治疗中的重要性
+  connection_weight: 0.3
+
+# CAD认知模型状态变化参数
+cad_state_changes:
+  description: "CAD认知模型状态变化参数"
+  
+  # 核心信念变化
+  core_beliefs:
+    # 自我信念变化率
+    # 建议范围: 0.1-0.3
+    # 物理意义: 对自我看法改变的难易程度
+    # 较低值表示自我概念较稳定，较难改变
+    self_belief_change_rate: 0.15
+    
+    # 世界观变化率
+    # 建议范围: 0.08-0.2
+    # 物理意义: 对外部世界看法改变的速度
+    # 通常比自我信念更难改变
+    world_belief_change_rate: 0.12
+    
+    # 未来观变化率
+    # 建议范围: 0.1-0.3
+    # 物理意义: 对未来期望改变的速度
+    # 在治疗中通常是最容易改善的部分
+    future_belief_change_rate: 0.18
+    
+    # 稳定性因子
+    # 建议范围: 0.7-0.95
+    # 物理意义: 核心信念的稳定性，阻止过快变化
+    # 较高值使信念变化更稳定
+    stability_factor: 0.85
+  
+  # 认知处理
+  cognitive_processing:
+    # 沉思减少率
+    # 建议范围: 0.15-0.3
+    # 物理意义: 减少负面沉思循环的速度
+    # 较高值表示治疗对沉思模式改善效果好
+    rumination_reduction_rate: 0.20
+    
+    # 认知扭曲减少率
+    # 建议范围: 0.1-0.25
+    # 物理意义: 纠正错误思维模式的速度
+    # 认知扭曲通常需要较长时间纠正
+    distortions_reduction_rate: 0.16
+    
+    # 积极重构奖励
+    # 建议范围: 0.05-0.2
+    # 物理意义: 成功进行积极思维重构的额外收益
+    # 鼓励患者主动改变思维模式
+    positive_reframe_bonus: 0.1
+  
+  # 行为模式
+  behavioral_patterns:
+    # 社交退缩改变率
+    # 建议范围: 0.1-0.25
+    # 物理意义: 减少社交回避行为的速度
+    # 行为改变通常比认知改变更直接
+    social_withdrawal_change_rate: 0.14
+    
+    # 意志缺失改变率
+    # 建议范围: 0.08-0.2
+    # 物理意义: 改善动机和行动力的速度
+    # 意志力恢复是抑郁治疗的重要指标
+    avolition_change_rate: 0.12
+    
+    # 行为激活奖励
+    # 建议范围: 0.05-0.15
+    # 物理意义: 主动参与积极活动的额外收益
+    # 鼓励行为实验和活动安排
+    activation_bonus: 0.08
+  
+  # 情感基调变化率
+  # 建议范围: 0.15-0.35
+  # 物理意义: 整体情绪状态改善的速度
+  # 情感变化往往是最直观的治疗效果
+  affective_tone_change_rate: 0.22
+  
+  # 治疗响应修正因子
+  # 建议范围: 0.8-1.5
+  # 物理意义: 针对治疗情境的状态变化放大/缩小
+  # >1.0表示治疗情境下变化更明显
+  therapy_response_modifier: 1.2
+  
+  # 修正因子
+  # 建议范围: 0.85-0.98
+  # 物理意义: 防止变化过于激进的平滑因子
+  # 使状态变化更加平滑和现实
+  correction_factor: 0.95
+
+# 抑郁程度发展设置
+depression_level_progression:
+  description: "抑郁程度变化设置"
+  
+  # 改善阈值
+  # 建议范围: 2.0-5.0
+  # 物理意义: CAD改善多少分可晋级到更轻的抑郁等级
+  # 较低阈值使等级变化更敏感
+  improvement_threshold: 3.5
+  
+  # 恶化阈值
+  # 建议范围: 1.5-3.0
+  # 物理意义: CAD恶化多少分会降级到更重的抑郁等级
+  # 较低阈值对恶化更敏感
+  deterioration_threshold: 2.0
+  
+  # 等级变化延迟轮数
+  # 建议范围: 3-8轮
+  # 物理意义: 状态改变后多少轮才反映到抑郁等级
+  # 防止抑郁等级过于频繁变化
+  level_change_delay_turns: 5
+  
+  # 恢复加速因子
+  # 建议范围: 1.0-2.0
+  # 物理意义: 恢复过程中的额外加速效应
+  # >1.0表示恢复有正反馈效应
+  recovery_acceleration_factor: 1.3
+
+# 督导功能设置
+supervision_settings:
+  description: "督导功能设置"
+  
+  # 督导间隔（轮数）
+  # 建议范围: 2-5轮
+  # 物理意义: 每隔多少轮对话进行一次督导分析
+  # 较短间隔提供更密集的专业指导
+  supervision_interval: 3
+  
+  # 评估间隔（轮数）
+  # 建议范围: 1-3轮
+  # 物理意义: 每隔多少轮进行治疗效果评估
+  # 用于监控治疗进展
+  evaluation_interval: 1
+  
+  # 风险阈值
+  # 建议范围: 0.5-0.9
+  # 物理意义: 超过此值触发风险预警
+  # 较低阈值对风险更敏感
+  risk_threshold: 0.7
+  
+  # 进展阈值
+  # 建议范围: 0.2-0.5
+  # 物理意义: 低于此值认为进展不佳
+  # 用于判断是否需要调整治疗策略
+  progress_threshold: 0.3
+  
+  # 督导深度
+  # 可选值: "basic", "moderate", "comprehensive"
+  # basic: 基础分析，关注主要问题
+  # moderate: 中等深度，平衡效率和质量
+  # comprehensive: 全面分析，最详细但耗时
+  supervision_depth: "comprehensive"
+
+# 情绪状态动态变化
+emotional_state_dynamics:
+  description: "情绪状态动态变化"
+  
+  # 压力减少率
+  # 建议范围: 0.2-0.6
+  # 物理意义: 治疗对压力缓解的效果
+  # 较高值表示治疗能有效减压
+  stress_reduction_rate: 0.4
+  
+  # 自尊改善率
+  # 建议范围: 0.15-0.4
+  # 物理意义: 自我价值感提升的速度
+  # 自尊恢复通常是长期过程
+  self_esteem_improvement_rate: 0.3
+  
+  # 社交联系增强率
+  # 建议范围: 0.1-0.4
+  # 物理意义: 社交关系质量改善的速度
+  # 社交技能和关系需要时间建立
+  social_connection_enhancement_rate: 0.25
+  
+  # 学业压力缓解率
+  # 建议范围: 0.1-0.3
+  # 物理意义: 对学业相关压力的缓解效果
+  # 通常需要具体的应对策略
+  academic_pressure_relief_rate: 0.2
+
+# 不同治疗技术的效果权重
+therapy_techniques_effectiveness:
+  description: "不同治疗技术的效果权重"
+  
+  # 认知重构技术
+  # 建议范围: 0.6-1.0
+  # 物理意义: 认知行为疗法核心技术的效果
+  # 对改变思维模式最直接有效
+  cognitive_restructuring: 0.8
+  
+  # 情感验证技术
+  # 建议范围: 0.4-0.8
+  # 物理意义: 共情和理解对治疗的贡献
+  # 建立治疗关系的基础
+  emotional_validation: 0.6
+  
+  # 行为激活技术
+  # 建议范围: 0.5-0.9
+  # 物理意义: 通过行为改变影响情绪的效果
+  # 对抑郁症特别有效
+  behavioral_activation: 0.7
+  
+  # 正念技术
+  # 建议范围: 0.3-0.7
+  # 物理意义: 冥想和正念练习的治疗效果
+  # 需要患者持续练习才有效
+  mindfulness_techniques: 0.5
+  
+  # 解决导向治疗
+  # 建议范围: 0.4-0.8
+  # 物理意义: 专注解决具体问题的效果
+  # 对有明确问题的情况特别有效
+  solution_focused_therapy: 0.6
+  
+  # 心理教育
+  # 建议范围: 0.3-0.6
+  # 物理意义: 提供疾病知识的治疗价值
+  # 增加患者对疾病的理解和配合
+  psychoeducation: 0.4
+
+# 患者回应分析权重
+patient_response_analysis:
+  description: "患者回应分析权重"
+  
+  # 积极指标权重
+  positive_indicators_weight:
+    # 感谢表达
+    # 建议范围: 0.5-1.0
+    # 物理意义: 患者表达感谢的治疗价值
+    gratitude_expressions: 0.8
+    
+    # 洞察陈述
+    # 建议范围: 0.7-1.0
+    # 物理意义: 患者获得自我洞察的价值
+    # 洞察是治疗的重要突破
+    insight_statements: 0.9
+    
+    # 改变承诺
+    # 建议范围: 0.5-0.9
+    # 物理意义: 患者承诺改变的治疗意义
+    commitment_to_change: 0.7
+    
+    # 情感开放
+    # 建议范围: 0.4-0.8
+    # 物理意义: 患者情感表达的治疗价值
+    emotional_openness: 0.6
+  
+  # 消极指标权重（负值）
+  negative_indicators_weight:
+    # 阻抗表达
+    # 建议范围: -0.3到-0.7
+    # 物理意义: 患者阻抗对治疗的负面影响
+    resistance_expressions: -0.5
+    
+    # 绝望陈述
+    # 建议范围: -0.5到-0.9
+    # 物理意义: 绝望情绪对治疗的阻碍作用
+    hopelessness_statements: -0.7
+    
+    # 退缩行为
+    # 建议范围: -0.2到-0.6
+    # 物理意义: 回避参与对治疗的消极影响
+    withdrawal_behaviors: -0.4
+    
+    # 治疗贬低
+    # 建议范围: -0.4到-0.8
+    # 物理意义: 质疑治疗价值的负面影响
+    therapy_devaluation: -0.6
+
+# 恢复里程碑设置
+recovery_milestones:
+  description: "恢复里程碑设置"
+  
+  # 早期阶段
+  early_stage:
+    # CAD改善阈值
+    # 建议范围: 0.5-2.0
+    # 物理意义: 早期恢复需要的最小改善幅度
+    cad_improvement_threshold: 1.0
+    
+    # 所需会话数
+    # 建议范围: 2-5次
+    # 物理意义: 达到早期里程碑的最少会话次数
+    session_count: 3
+  
+  # 中期阶段
+  middle_stage:
+    # CAD改善阈值
+    # 建议范围: 2.0-4.0
+    # 物理意义: 中期恢复需要的累积改善幅度
+    cad_improvement_threshold: 2.5
+    
+    # 所需会话数
+    # 建议范围: 6-12次
+    # 物理意义: 达到中期里程碑的最少会话次数
+    session_count: 8
+  
+  # 高级阶段
+  advanced_stage:
+    # CAD改善阈值
+    # 建议范围: 3.5-6.0
+    # 物理意义: 高级恢复需要的累积改善幅度
+    cad_improvement_threshold: 4.0
+    
+    # 所需会话数
+    # 建议范围: 12-20次
+    # 物理意义: 达到高级里程碑的最少会话次数
+    session_count: 15
+
+# 治疗阈值设定
+therapy_thresholds:
+  # 突破阈值
+  # 建议范围: 6.0-10.0
+  # 物理意义: 认为发生治疗突破的CAD改善阈值
+  breakthrough_threshold: 8.0
+  
+  # 阻抗阈值
+  # 建议范围: 2.0-5.0
+  # 物理意义: 认为出现明显阻抗的CAD恶化阈值
+  resistance_threshold: 3.0
+  
+  # 联盟建立阈值
+  # 建议范围: 4.0-8.0
+  # 物理意义: 认为治疗联盟建立良好的分值
+  alliance_building_threshold: 6.0
+  
+  # 危机干预阈值
+  # 建议范围: 1.0-3.0
+  # 物理意义: 需要危机干预的严重恶化阈值
+  crisis_intervention_threshold: 2.0
+
+# 状态边界设定
+state_bounds:
+  # 最小CAD值
+  # 建议范围: -15.0到-5.0
+  # 物理意义: CAD状态的最低可能值
+  min_cad_value: -10.0
+  
+  # 最大CAD值
+  # 建议范围: 5.0到15.0
+  # 物理意义: CAD状态的最高可能值
+  max_cad_value: 10.0
+  
+  # 最小抑郁改善
+  # 建议范围: 0.05-0.3
+  # 物理意义: 单次会话的最小改善幅度
+  min_depression_improvement: 0.1
+  
+  # 每次会话最大抑郁变化
+  # 建议范围: 0.5-2.0
+  # 物理意义: 单次会话能产生的最大状态变化
+  max_depression_change_per_session: 1.0 

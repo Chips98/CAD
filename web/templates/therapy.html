@@ -1,0 +1,603 @@
+{% extends "base.html" %}
+
+{% block title %}心理治疗对话{% endblock %}
+
+{% block content %}
+<div class="container-fluid h-100">
+    <div class="row h-100">
+        <!-- 左侧患者选择面板 -->
+        <div class="col-md-4 col-lg-3 bg-light border-right therapy-sidebar" style="height: 100vh; overflow-y: auto;">
+            <div class="p-3">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="mb-0">患者选择</h5>
+                    <button id="refresh-patients" class="btn btn-sm btn-outline-primary">
+                        <i class="fas fa-sync-alt"></i> 刷新
+                    </button>
+                </div>
+                
+                <!-- AI提供商选择 -->
+                <div class="mb-3">
+                    <label for="ai-provider-select" class="form-label">AI提供商</label>
+                    <select id="ai-provider-select" class="form-select">
+                        <option value="deepseek">DeepSeek</option>
+                        <option value="gemini">Google Gemini</option>
+                    </select>
+                </div>
+                
+                <!-- 患者列表 -->
+                <div id="patient-list" class="mb-3">
+                    <div class="text-center text-muted">正在加载患者数据...</div>
+                </div>
+                
+                <!-- 文件选择 -->
+                <div id="file-selection" style="display: none;">
+                    <h6 class="border-top pt-3">选择数据源</h6>
+                    <div id="file-list"></div>
+                </div>
+                
+                <!-- 治疗启动按钮 -->
+                <div class="border-top pt-3">
+                    <button id="start-human-therapy" class="btn btn-primary w-100 mb-2" disabled>
+                        <i class="fas fa-user-md"></i> 开始人工治疗
+                    </button>
+                    <button id="start-ai-therapy" class="btn btn-success w-100" disabled>
+                        <i class="fas fa-robot"></i> 开始AI对AI治疗
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 右侧对话区域 -->
+        <div class="col-md-8 col-lg-9 d-flex flex-column">
+            <!-- 对话头部 -->
+            <div class="bg-white border-bottom p-3">
+                <h4 class="mb-1">心理治疗对话</h4>
+                <small class="text-muted">选择患者后开始治疗会话</small>
+            </div>
+            
+            <!-- 聊天容器 -->
+            <div class="chat-container flex-grow-1 d-flex flex-column" style="display: none;">
+                <!-- 消息区域 -->
+                <div id="chat-messages" class="flex-grow-1 p-3" style="overflow-y: auto; min-height: 400px;">
+                    <!-- 消息将在这里显示 -->
+                </div>
+                
+                <!-- 人工治疗输入区域 -->
+                <div class="human-input border-top p-3" style="display: none;">
+                    <div class="input-group">
+                        <input type="text" id="user-message" class="form-control" 
+                               placeholder="输入您的治疗建议...">
+                        <button id="send-message" class="btn btn-primary">
+                            <i class="fas fa-paper-plane"></i> 发送
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 治疗进展面板 -->
+            <div id="therapy-progress" class="bg-light border-top p-3" style="display: none;">
+                <h6>治疗进展</h6>
+                <div class="row">
+                    <div class="col-md-3">
+                        <small class="text-muted">当前轮数</small>
+                        <div id="current-round">0</div>
+                    </div>
+                    <div class="col-md-3">
+                        <small class="text-muted">治疗效果</small>
+                        <div id="therapy-score">0.0</div>
+                    </div>
+                    <div class="col-md-3">
+                        <small class="text-muted">治疗联盟</small>
+                        <div id="alliance-score">0.0</div>
+                    </div>
+                    <div class="col-md-3">
+                        <small class="text-muted">风险等级</small>
+                        <div id="risk-level">低</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.patient-card {
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 10px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.patient-card:hover {
+    border-color: #007bff;
+    box-shadow: 0 2px 4px rgba(0,123,255,0.15);
+}
+
+.patient-card.selected {
+    border-color: #007bff;
+    background-color: #e7f1ff;
+}
+
+.patient-card h4 {
+    font-size: 16px;
+    margin-bottom: 8px;
+    color: #333;
+}
+
+.patient-card .sim-id {
+    font-size: 12px;
+    color: #666;
+    margin-bottom: 4px;
+}
+
+.patient-card .status {
+    font-size: 13px;
+    color: #28a745;
+    margin-bottom: 4px;
+}
+
+.patient-card .depression-level {
+    font-size: 13px;
+    color: #dc3545;
+    margin-bottom: 4px;
+}
+
+.patient-card .therapy-count {
+    font-size: 12px;
+    color: #17a2b8;
+    margin-bottom: 0;
+}
+
+.file-item {
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    padding: 10px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.file-item:hover {
+    border-color: #28a745;
+    background-color: #f8f9fa;
+}
+
+.file-item.selected {
+    border-color: #28a745;
+    background-color: #d4edda;
+}
+
+.file-item.recommended {
+    border-color: #ffc107;
+    background-color: #fff3cd;
+}
+
+.file-item h5 {
+    font-size: 14px;
+    margin-bottom: 4px;
+    color: #333;
+}
+
+.file-item .file-desc {
+    font-size: 12px;
+    color: #666;
+    margin-bottom: 0;
+}
+
+.message {
+    margin-bottom: 15px;
+    padding: 10px 15px;
+    border-radius: 10px;
+    max-width: 80%;
+    word-wrap: break-word;
+}
+
+.therapist-message {
+    background-color: #007bff;
+    color: white;
+    margin-left: auto;
+    margin-right: 0;
+}
+
+.patient-message {
+    background-color: #f8f9fa;
+    color: #333;
+    border: 1px solid #e9ecef;
+    margin-left: 0;
+    margin-right: auto;
+}
+
+.system-message {
+    background-color: #6c757d;
+    color: white;
+    margin: 0 auto;
+    text-align: center;
+    font-size: 14px;
+}
+
+.message-header {
+    font-weight: bold;
+    font-size: 12px;
+    margin-bottom: 5px;
+    opacity: 0.8;
+}
+
+.message-content {
+    margin-bottom: 5px;
+    line-height: 1.4;
+}
+
+.message-time {
+    font-size: 11px;
+    opacity: 0.6;
+    text-align: right;
+}
+
+.no-data {
+    text-align: center;
+    color: #6c757d;
+    padding: 20px;
+    font-style: italic;
+}
+</style>
+
+<script>
+let selectedPatient = null;
+let selectedFile = null;
+let therapySession = null;
+let isHumanTherapy = false;
+
+// 页面加载时初始化
+document.addEventListener('DOMContentLoaded', function() {
+    loadPatients();
+    
+    // 绑定事件
+    document.getElementById('refresh-patients').addEventListener('click', loadPatients);
+    document.getElementById('start-ai-therapy').addEventListener('click', startAITherapy);
+    document.getElementById('start-human-therapy').addEventListener('click', startHumanTherapy);
+    document.getElementById('send-message').addEventListener('click', sendMessage);
+    
+    // 回车发送消息
+    document.getElementById('user-message').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            sendMessage();
+        }
+    });
+    
+    // WebSocket事件监听
+    socket.on('therapy_status', function(data) {
+        showStatus(data.message);
+        if (data.status === 'completed') {
+            showStatus('AI对AI治疗完成！');
+            if (data.summary) {
+                showStatus('治疗总结: ' + JSON.stringify(data.summary, null, 2));
+            }
+        }
+    });
+});
+
+// 加载患者数据
+function loadPatients() {
+    fetch('/api/patient_files')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                displayPatients(data.simulations);
+            } else {
+                showError('加载患者数据失败: ' + data.error);
+            }
+        })
+        .catch(error => {
+            showError('网络错误: ' + error.message);
+        });
+}
+
+// 显示患者列表
+function displayPatients(simulations) {
+    const patientList = document.getElementById('patient-list');
+    
+    if (simulations.length === 0) {
+        patientList.innerHTML = '<div class="no-data">暂无患者数据</div>';
+        return;
+    }
+    
+    let html = '';
+    simulations.forEach((sim, index) => {
+        html += `
+            <div class="patient-card" onclick="selectPatient('${sim.sim_id}', ${index})">
+                <h4>${sim.patient_name}</h4>
+                <p class="sim-id">${sim.sim_id}</p>
+                <p class="status">${sim.status}</p>
+                <p class="depression-level">抑郁程度: ${getDepressionLevelText(sim.depression_level)}</p>
+                ${sim.therapy_sessions > 0 ? `<p class="therapy-count">已有${sim.therapy_sessions}次治疗记录</p>` : ''}
+            </div>
+        `;
+    });
+    
+    patientList.innerHTML = html;
+    window.simulationsData = simulations; // 存储数据供后续使用
+}
+
+// 选择患者
+function selectPatient(simId, index) {
+    selectedPatient = {
+        sim_id: simId,
+        data: window.simulationsData[index]
+    };
+    
+    // 更新UI
+    document.querySelectorAll('.patient-card').forEach(card => card.classList.remove('selected'));
+    event.target.closest('.patient-card').classList.add('selected');
+    
+    // 显示文件选择
+    displayFileSelection(selectedPatient.data.files);
+    
+    // 清空聊天记录
+    clearChat();
+}
+
+// 显示文件选择
+function displayFileSelection(files) {
+    const fileSelection = document.getElementById('file-selection');
+    const fileList = document.getElementById('file-list');
+    
+    if (files.length === 0) {
+        fileList.innerHTML = '<div class="no-data">该患者暂无可用数据文件</div>';
+        fileSelection.style.display = 'block';
+        return;
+    }
+    
+    let html = '';
+    files.forEach((file, index) => {
+        const isRecommended = file.type === 'complete';
+        html += `
+            <div class="file-item ${isRecommended ? 'recommended' : ''}" onclick="selectFile('${file.path}', '${file.name}', '${file.type}')">
+                <h5>${file.name} ${isRecommended ? '⭐ 推荐' : ''}</h5>
+                <p class="file-desc">${file.description}</p>
+            </div>
+        `;
+    });
+    
+    fileList.innerHTML = html;
+    fileSelection.style.display = 'block';
+}
+
+// 选择文件
+function selectFile(filePath, fileName, fileType) {
+    selectedFile = {
+        path: filePath,
+        name: fileName,
+        type: fileType
+    };
+    
+    // 更新UI
+    document.querySelectorAll('.file-item').forEach(item => item.classList.remove('selected'));
+    event.target.closest('.file-item').classList.add('selected');
+    
+    // 启用治疗按钮
+    document.getElementById('start-ai-therapy').disabled = false;
+    document.getElementById('start-human-therapy').disabled = false;
+}
+
+// 启动AI对AI治疗
+function startAITherapy() {
+    if (!selectedPatient || !selectedFile) {
+        showError('请先选择患者和数据文件');
+        return;
+    }
+    
+    const aiProvider = document.getElementById('ai-provider-select').value;
+    
+    showStatus('正在启动AI对AI治疗会话...');
+    
+    fetch('/api/start_ai_therapy', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            patient_file: selectedFile.path,
+            ai_provider: aiProvider,
+            max_turns: 15
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            therapySession = data.session_id;
+            isHumanTherapy = false;
+            showStatus('AI对AI治疗会话已启动，会话ID: ' + data.session_id);
+            // 禁用选择界面，隐藏人工消息输入
+            disableSelection();
+            document.querySelector('.human-input').style.display = 'none';
+            document.querySelector('.chat-container').style.display = 'flex';
+        } else {
+            showError('启动治疗失败: ' + data.error);
+        }
+    })
+    .catch(error => {
+        showError('网络错误: ' + error.message);
+    });
+}
+
+// 启动人工治疗
+function startHumanTherapy() {
+    if (!selectedPatient || !selectedFile) {
+        showError('请先选择患者和数据文件');
+        return;
+    }
+    
+    const aiProvider = document.getElementById('ai-provider-select').value;
+    
+    showStatus('正在启动人工治疗会话...');
+    
+    fetch('/api/start_human_therapy', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            patient_file: selectedFile.path,
+            ai_provider: aiProvider
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            therapySession = data.session_id;
+            isHumanTherapy = true;
+            showStatus('人工治疗会话已启动');
+            
+            // 显示患者信息
+            const patientInfo = data.patient_info;
+                        showStatus(`患者信息: 姓名: ${patientInfo.name || '未知'}, 年龄: ${patientInfo.age || '未知'}, 抑郁程度: ${getDepressionLevelText(patientInfo.depression_level) || '未知'}`);            
+            
+            // 启用人工治疗界面
+            disableSelection();
+            document.querySelector('.human-input').style.display = 'flex';
+            document.querySelector('.chat-container').style.display = 'flex';
+        } else {
+            showError('启动治疗失败: ' + data.error);
+        }
+    })
+    .catch(error => {
+        showError('网络错误: ' + error.message);
+    });
+}
+
+// 发送人工治疗消息
+function sendMessage() {
+    if (!isHumanTherapy || !therapySession) {
+        showError('请先启动人工治疗会话');
+        return;
+    }
+    
+    const messageInput = document.getElementById('user-message');
+    const message = messageInput.value.trim();
+    
+    if (!message) return;
+    
+    // 显示治疗师消息
+    addMessage('therapist', message);
+    messageInput.value = '';
+    messageInput.disabled = true;
+    
+    // 发送到后端处理
+    showStatus('患者正在思考回应...');
+    
+    fetch('/api/human_therapy_message', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            session_id: therapySession,
+            message: message
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            addMessage('patient', data.patient_response);
+            // 显示治疗进展
+            if (data.session_progress) {
+                updateProgress(data.session_progress);
+            }
+        } else {
+            showError('发送消息失败: ' + data.error);
+        }
+    })
+    .catch(error => {
+        showError('网络错误: ' + error.message);
+    })
+    .finally(() => {
+        messageInput.disabled = false;
+        messageInput.focus();
+    });
+}
+
+// 更新治疗进展
+function updateProgress(progress) {
+    document.getElementById('therapy-progress').style.display = 'block';
+    document.getElementById('current-round').textContent = progress.round || 0;
+    document.getElementById('therapy-score').textContent = (progress.therapy_score || 0).toFixed(1);
+    document.getElementById('alliance-score').textContent = (progress.alliance_score || 0).toFixed(1);
+    document.getElementById('risk-level').textContent = progress.risk_level || '低';
+}
+
+// 添加消息到聊天记录
+function addMessage(sender, message) {
+    const chatMessages = document.getElementById('chat-messages');
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `message ${sender}-message`;
+    
+    const time = new Date().toLocaleTimeString();
+    const senderName = {
+        'therapist': '👩‍⚕️ 治疗师',
+        'patient': '🧑‍🎓 患者',
+        'system': '🤖 系统'
+    }[sender] || sender;
+    
+    messageDiv.innerHTML = `
+        <div class="message-header">${senderName}</div>
+        <div class="message-content">${message}</div>
+        <div class="message-time">${time}</div>
+    `;
+    
+    chatMessages.appendChild(messageDiv);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+// 禁用选择界面
+function disableSelection() {
+    document.querySelector('.therapy-sidebar').style.opacity = '0.5';
+    document.getElementById('start-ai-therapy').disabled = true;
+    document.getElementById('start-human-therapy').disabled = true;
+}
+
+// 清空聊天记录
+function clearChat() {
+    document.getElementById('chat-messages').innerHTML = '';
+    document.querySelector('.chat-container').style.display = 'none';
+    document.querySelector('.human-input').style.display = 'none';
+    document.querySelector('.therapy-sidebar').style.opacity = '1';
+    document.getElementById('therapy-progress').style.display = 'none';
+    therapySession = null;
+    isHumanTherapy = false;
+    
+    // 重新启用按钮
+    if (selectedFile) {
+        document.getElementById('start-ai-therapy').disabled = false;
+        document.getElementById('start-human-therapy').disabled = false;
+    }
+}
+
+// 显示状态信息
+function showStatus(message) {
+    addMessage('system', message);
+}
+
+// 显示错误信息
+function showError(message) {
+    addMessage('system', '❌ ' + message);
+}
+
+// 获取抑郁程度文本（支持10级精细分级）
+function getDepressionLevelText(level) {
+    const depressionLevelMap = {
+        // 数字映射
+        0: "最佳状态", 1: "健康正常", 2: "最小症状", 3: "轻度风险", 4: "轻度抑郁",
+        5: "中轻度抑郁", 6: "中度抑郁", 7: "中重度抑郁", 8: "重度抑郁", 9: "极重度抑郁",
+        // 字符串映射
+        "OPTIMAL": "最佳状态", "HEALTHY": "健康正常", "MINIMAL_SYMPTOMS": "最小症状",
+        "MILD_RISK": "轻度风险", "MILD": "轻度抑郁", "MODERATE_MILD": "中轻度抑郁",
+        "MODERATE": "中度抑郁", "MODERATE_SEVERE": "中重度抑郁", "SEVERE": "重度抑郁", "CRITICAL": "极重度抑郁"
+    };
+    
+    return depressionLevelMap[level] || level || '未知';
+}
+</script>
+{% endblock %} 

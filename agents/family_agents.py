@@ -6,8 +6,9 @@ class FamilyAgent(BaseAgent):
     """家庭成员Agent基类"""
     
     def __init__(self, name: str, age: int, personality: Dict[str, Any], 
-                 ai_client: Union['GeminiClient', 'DeepSeekClient'], relationship_to_student: str):
-        super().__init__(name, age, personality, ai_client)
+                 ai_client: Union['GeminiClient', 'DeepSeekClient'], relationship_to_student: str,
+                 psychological_model = None):
+        super().__init__(name, age, personality, ai_client, psychological_model)
         self.relationship_to_student = relationship_to_student
         self.parenting_style = personality.get("parenting_style", "平衡型")
         self.emotional_availability = personality.get("emotional_availability", 5)
@@ -59,8 +60,8 @@ class FatherAgent(FamilyAgent):
     """父亲Agent"""
     
     def __init__(self, name: str, age: int, personality: Dict[str, Any], 
-                 ai_client: Union['GeminiClient', 'DeepSeekClient']):
-        super().__init__(name, age, personality, ai_client, "父亲")
+                 ai_client: Union['GeminiClient', 'DeepSeekClient'], psychological_model = None):
+        super().__init__(name, age, personality, ai_client, "父亲", psychological_model)
         self.occupation = personality.get("occupation", "未知")
         self.work_stress = personality.get("work_pressure", 5)
         self.traditional_values = personality.get("traditional_values", True)
@@ -93,8 +94,8 @@ class MotherAgent(FamilyAgent):
     """母亲Agent"""
     
     def __init__(self, name: str, age: int, personality: Dict[str, Any], 
-                 ai_client: Union['GeminiClient', 'DeepSeekClient']):
-        super().__init__(name, age, personality, ai_client, "母亲")
+                 ai_client: Union['GeminiClient', 'DeepSeekClient'], psychological_model = None):
+        super().__init__(name, age, personality, ai_client, "母亲", psychological_model)
         self.nurturing_instinct = personality.get("nurturing_instinct", 8)
         self.anxiety_level = personality.get("anxiety_level", 5)
         self.emotional_sensitivity = personality.get("emotional_sensitivity", 7)
@@ -131,8 +132,9 @@ class SiblingAgent(BaseAgent):
     """兄弟姐妹Agent"""
     
     def __init__(self, name: str, age: int, personality: Dict[str, Any], 
-                 ai_client: Union['GeminiClient', 'DeepSeekClient'], relationship_type: str):
-        super().__init__(name, age, personality, ai_client)
+                 ai_client: Union['GeminiClient', 'DeepSeekClient'], relationship_type: str,
+                 psychological_model = None):
+        super().__init__(name, age, personality, ai_client, psychological_model)
         self.relationship_type = relationship_type  # "哥哥", "弟弟", "姐姐", "妹妹"
         self.competitiveness = personality.get("competitive", 5)
         self.supportiveness = personality.get("supportive", 6)

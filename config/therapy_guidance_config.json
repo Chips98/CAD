@@ -1,0 +1,106 @@
+{
+  "therapy_effectiveness": {
+    "description": "治疗有效性配置参数",
+    "base_improvement_factor": 0.5,
+    "max_improvement_per_turn": 0.8,
+    "min_improvement_per_turn": 0.1,
+    "technique_weight": 0.4,
+    "openness_weight": 0.3,
+    "connection_weight": 0.3
+  },
+  "cad_state_changes": {
+    "description": "CAD认知模型状态变化参数",
+    "core_beliefs": {
+      "self_belief_change_rate": 0.15,
+      "world_belief_change_rate": 0.12,
+      "future_belief_change_rate": 0.18,
+      "stability_factor": 0.85
+    },
+    "cognitive_processing": {
+      "rumination_reduction_rate": 0.20,
+      "distortions_reduction_rate": 0.16,
+      "positive_reframe_bonus": 0.1
+    },
+    "behavioral_patterns": {
+      "social_withdrawal_change_rate": 0.14,
+      "avolition_change_rate": 0.12,
+      "activation_bonus": 0.08
+    },
+    "affective_tone_change_rate": 0.22,
+    "therapy_response_modifier": 1.2,
+    "correction_factor": 0.95
+  },
+  "depression_level_progression": {
+    "description": "抑郁程度变化设置",
+    "improvement_threshold": 3.5,
+    "deterioration_threshold": 2.0,
+    "level_change_delay_turns": 5,
+    "recovery_acceleration_factor": 1.3
+  },
+  "supervision_settings": {
+    "description": "督导功能设置",
+    "supervision_interval": 3,
+    "evaluation_interval": 1,
+    "risk_threshold": 0.7,
+    "progress_threshold": 0.3,
+    "supervision_depth": "comprehensive"
+  },
+  "emotional_state_dynamics": {
+    "description": "情绪状态动态变化",
+    "stress_reduction_rate": 0.4,
+    "self_esteem_improvement_rate": 0.3,
+    "social_connection_enhancement_rate": 0.25,
+    "academic_pressure_relief_rate": 0.2
+  },
+  "therapy_techniques_effectiveness": {
+    "description": "不同治疗技术的效果权重",
+    "cognitive_restructuring": 0.8,
+    "emotional_validation": 0.6,
+    "behavioral_activation": 0.7,
+    "mindfulness_techniques": 0.5,
+    "solution_focused_therapy": 0.6,
+    "psychoeducation": 0.4
+  },
+  "patient_response_analysis": {
+    "description": "患者回应分析权重",
+    "positive_indicators_weight": {
+      "gratitude_expressions": 0.8,
+      "insight_statements": 0.9,
+      "commitment_to_change": 0.7,
+      "emotional_openness": 0.6
+    },
+    "negative_indicators_weight": {
+      "resistance_expressions": -0.5,
+      "hopelessness_statements": -0.7,
+      "withdrawal_behaviors": -0.4,
+      "therapy_devaluation": -0.6
+    }
+  },
+  "recovery_milestones": {
+    "description": "恢复里程碑设置",
+    "early_stage": {
+      "cad_improvement_threshold": 1.0,
+      "session_count": 3
+    },
+    "middle_stage": {
+      "cad_improvement_threshold": 2.5,
+      "session_count": 8
+    },
+    "advanced_stage": {
+      "cad_improvement_threshold": 4.0,
+      "session_count": 15
+    }
+  },
+  "therapy_thresholds": {
+    "breakthrough_threshold": 8.0,
+    "resistance_threshold": 3.0,
+    "alliance_building_threshold": 6.0,
+    "crisis_intervention_threshold": 2.0
+  },
+  "state_bounds": {
+    "min_cad_value": -10.0,
+    "max_cad_value": 10.0,
+    "min_depression_improvement": 0.1,
+    "max_depression_change_per_session": 1.0
+  }
+} 

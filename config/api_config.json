@@ -1,0 +1,24 @@
+{
+  "default_provider": "deepseek",
+  "providers": {
+    "gemini": {
+      "api_key": "your_gemini_api_key_here",
+      "model": "gemini-pro",
+      "enabled": true
+    },
+    "deepseek": {
+      "api_key": "sk-83385d61b4ce4b74aa5f726f62444c5b",
+      "base_url": "https://api.deepseek.com",
+      "model": "deepseek-chat",
+      "enabled": true
+    },
+    "qwen": {
+      "api_key": "sk-bdf466c95c6140b38a3d0766ae0765bb",
+      "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+      "model": "qwen-turbo-latest",
+      "enabled": true
+    }
+  },
+  "timeout": 30,
+  "max_retries": 3
+} 

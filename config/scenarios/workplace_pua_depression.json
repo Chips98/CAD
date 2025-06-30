@@ -1,0 +1,277 @@
+{
+  "scenario_name": "职场新人PUA抑郁场景",
+  "description": "24岁广告公司新人苏月遭受上司PUA情感操控逐渐发展抑郁症的完整过程 - 《消失的午休时间》",
+  "characters": {
+    "protagonist": {
+      "type": "StudentAgent",
+      "name": "苏月",
+      "age": 24,
+      "personality": {
+        "traits": ["努力", "敏感", "善良", "渴望认可"],
+        "openness": 7,
+        "conscientiousness": 9,
+        "extraversion": 5,
+        "agreeableness": 8,
+        "neuroticism": 6
+      },
+      "background": {
+        "family_situation": "普通家庭，刚步入职场",
+        "work_performance": "努力但缺乏经验",
+        "social_status": "职场新人，渴望证明自己"
+      }
+    },
+    "boss": {
+      "type": "BullyAgent",
+      "name": "陈总监",
+      "age": 40,
+      "personality": {
+        "aggression": 7,
+        "insecurity": 6,
+        "control_need": 9,
+        "popularity": 6,
+        "manipulation_skill": 9
+      },
+      "extra_params": {
+        "position": "直属上司",
+        "management_style": "情感操控型PUA"
+      }
+    },
+    "colleague": {
+      "type": "ClassmateAgent",
+      "name": "张姐",
+      "age": 30,
+      "personality": {
+        "empathy": 8,
+        "loyalty": 6,
+        "support_ability": 7,
+        "workplace_savvy": 9,
+        "shared_interests": ["工作", "生活经验"]
+      },
+      "extra_params": {
+        "relationship_with_protagonist": "同事",
+        "工作年限": 5,
+        "处世方式": "明哲保身"
+      }
+    },
+    "boyfriend": {
+      "type": "BestFriendAgent",
+      "name": "阿哲",
+      "age": 26,
+      "personality": {
+        "empathy": 5,
+        "loyalty": 7,
+        "support_ability": 5,
+        "work_busy": 8,
+        "shared_interests": ["电影", "旅行", "技术"]
+      },
+      "extra_params": {
+        "relationship_with_protagonist": "男友",
+        "occupation": "程序员"
+      }
+    },
+    "friend": {
+      "type": "BestFriendAgent",
+      "name": "小雯",
+      "age": 24,
+      "personality": {
+        "empathy": 9,
+        "loyalty": 8,
+        "support_ability": 7,
+        "shared_interests": ["逛街", "聊天", "美食"]
+      },
+      "extra_params": {
+        "relationship_with_protagonist": "闺蜜"
+      }
+    },
+    "client": {
+      "type": "ClassmateAgent",
+      "name": "王总",
+      "age": 45,
+      "personality": {
+        "demanding": 8,
+        "empathy": 3,
+        "perfectionist": 9
+      },
+      "extra_params": {
+        "relationship_with_protagonist": "客户"
+      }
+    }
+  },
+  "relationships": [
+    {"person_a": "苏月", "person_b": "陈总监", "type": "上下级", "closeness": 3, "trust": 2, "conflict": 8},
+    {"person_a": "苏月", "person_b": "张姐", "type": "同事", "closeness": 6, "trust": 6, "conflict": 2},
+    {"person_a": "苏月", "person_b": "阿哲", "type": "恋人", "closeness": 8, "trust": 7, "conflict": 3},
+    {"person_a": "苏月", "person_b": "小雯", "type": "好友", "closeness": 9, "trust": 8, "conflict": 1},
+    {"person_a": "苏月", "person_b": "王总", "type": "工作关系", "closeness": 2, "trust": 3, "conflict": 5}
+  ],
+  "event_templates": {
+    "work_pressure": {
+      "positive": [
+        "{protagonist}完成了一个项目文案",
+        "客户对{protagonist}的方案表示满意",
+        "{colleague}偷偷帮助{protagonist}",
+        "{protagonist}学会了新的设计技能"
+      ],
+      "negative": [
+        "{boss}说'{protagonist}的方案太幼稚，大学生就这水平？'",
+        "{boss}安排{protagonist}一人负责3个项目",
+        "{boss}要求'{protagonist}今晚必须改10版'",
+        "{boss}在全体会议上把客户投诉甩给{protagonist}"
+      ],
+      "neutral": [
+        "{protagonist}加班到11点",
+        "{boss}布置了新的工作任务",
+        "{protagonist}参加了团队会议",
+        "修改文案到深夜"
+      ]
+    },
+    "pua_manipulation": {
+      "positive": [],
+      "negative": [
+        "{boss}在会议上故意忽略{protagonist}的建议",
+        "{boss}对其他同事说'{protagonist}经验不足，你们多带带'",
+        "{boss}私下说'我是为你好，不然早把你开了'",
+        "{boss}让{protagonist}周末通宵改方案"
+      ],
+      "neutral": [
+        "{boss}单独找{protagonist}谈话",
+        "{protagonist}手机24小时待命",
+        "{boss}布置了紧急任务",
+        "会议上{boss}的态度很冷淡"
+      ]
+    },
+    "social": {
+      "positive": [
+        "{friend}邀请{protagonist}聚会",
+        "{colleague}在茶水间安慰{protagonist}",
+        "{boyfriend}陪{protagonist}看电影",
+        "和朋友一起吃饭聊天"
+      ],
+      "negative": [
+        "{protagonist}拒绝朋友聚会",
+        "{boyfriend}发现{protagonist}经常失眠",
+        "{protagonist}不再回{boyfriend}消息",
+        "{colleague}发现{protagonist}在茶水间晕倒"
+      ],
+      "neutral": [
+        "{protagonist}午休时躲在楼梯间",
+        "收到朋友的关心消息",
+        "{boyfriend}忙于工作",
+        "和同事简单打招呼"
+      ]
+    },
+    "personal": {
+      "positive": [
+        "{protagonist}坚持写作练习",
+        "读了一本喜欢的书",
+        "{protagonist}试着放松心情",
+        "完成了一直想做的事"
+      ],
+      "negative": [
+        "{protagonist}出现胃炎症状",
+        "{protagonist}开始斑秃",
+        "{protagonist}对写作失去兴趣",
+        "{protagonist}凌晨3点用美工刀划向手腕"
+      ],
+      "neutral": [
+        "{protagonist}在公司卫生间独处",
+        "整理了工作资料",
+        "{protagonist}微信签名改为'好累'",
+        "一个人在办公室思考"
+      ]
+    },
+    "health": {
+      "positive": [
+        "{protagonist}尝试早睡早起",
+        "买了维生素补充营养",
+        "{protagonist}去医院检查身体",
+        "尝试做瑜伽放松"
+      ],
+      "negative": [
+        "{protagonist}频繁头痛",
+        "在公司走路时不敢和同事对视",
+        "{protagonist}手抖写不好字",
+        "出现严重的失眠症状"
+      ],
+      "neutral": [
+        "{protagonist}在药店买了止痛药",
+        "关注了一些健康资讯",
+        "{protagonist}测量了血压",
+        "记录了睡眠情况"
+      ]
+    }
+  },
+  "stage_config": {
+    "健康阶段": {
+      "event_weights": {"positive": 0.6, "negative": 0.2, "neutral": 0.2},
+      "event_categories": ["work_pressure", "social", "personal"],
+      "stress_modifier": 0.8,
+      "relationship_decay": 0.96
+    },
+    "压力积累": {
+      "event_weights": {"positive": 0.3, "negative": 0.5, "neutral": 0.2},
+      "event_categories": ["work_pressure", "pua_manipulation", "social"],
+      "stress_modifier": 1.3,
+      "relationship_decay": 0.91
+    },
+    "初期问题": {
+      "event_weights": {"positive": 0.2, "negative": 0.6, "neutral": 0.2},
+      "event_categories": ["pua_manipulation", "personal", "health"],
+      "stress_modifier": 1.6,
+      "relationship_decay": 0.86
+    },
+    "关系恶化": {
+      "event_weights": {"positive": 0.1, "negative": 0.7, "neutral": 0.2},
+      "event_categories": ["pua_manipulation", "social", "personal", "health"],
+      "stress_modifier": 1.9,
+      "relationship_decay": 0.81
+    },
+    "抑郁发展": {
+      "event_weights": {"positive": 0.05, "negative": 0.8, "neutral": 0.15},
+      "event_categories": ["personal", "health", "pua_manipulation"],
+      "stress_modifier": 2.2,
+      "relationship_decay": 0.76
+    }
+  },
+  "conditional_events": {
+    "severe_pua": {
+      "condition_type": "stress_level",
+      "condition_value": 7,
+      "condition_operator": "greater_than",
+      "events": [
+        "{boss}让{protagonist}周末通宵改方案",
+        "{protagonist}开始模仿{boss}的说话方式",
+        "{protagonist}觉得'{boss}说的对，我确实能力不行'"
+      ]
+    },
+    "physical_symptoms": {
+      "condition_type": "mood",
+      "condition_value": 4,
+      "condition_operator": "less_than",
+      "events": [
+        "{protagonist}出现胃炎、斑秃症状",
+        "在茶水间晕倒被{colleague}扶到工位",
+        "{protagonist}认为'被骂是应该的'"
+      ]
+    },
+    "self_harm_risk": {
+      "condition_type": "stress_level",
+      "condition_value": 9,
+      "condition_operator": "greater_than",
+      "events": [
+        "{protagonist}认为'辞职就是逃避'",
+        "对曾经热爱的写作失去兴趣",
+        "{colleague}在卫生间发现{protagonist}用美工刀划手腕"
+      ]
+    }
+  },
+  "cad_impact_rules": {
+    "self_belief_modifier": 0.2,
+    "world_belief_modifier": 0.3,
+    "future_belief_modifier": 0.4,
+    "rumination_amplifier": 1.5,
+    "distortion_threshold": 6.0,
+    "withdrawal_social_impact": 0.5,
+    "avolition_activity_impact": 0.6
+  }
+} 

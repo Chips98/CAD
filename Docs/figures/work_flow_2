@@ -1,0 +1,219 @@
+graph TD
+    subgraph "🖥️ 用户界面层"
+        A["主程序<br/>main.py"]
+        A1["显示欢迎信息"]
+        A2["显示菜单"]
+        A3["选择AI提供商"]
+        A4["显示模拟信息"]
+        
+        B["咨询程序<br/>start_therapy_from_logs.py"]
+        B1["扫描模拟记录"]
+        B2["显示运行菜单"]
+    end
+    
+    subgraph "⚙️ 业务逻辑层"
+        C["模拟引擎<br/>SimulationEngine"]
+        C1["初始化模拟"]
+        C2["设置智能体"]
+        C3["运行30天模拟"]
+        C4["模拟单日活动"]
+        C5["生成最终报告"]
+        
+        D["心理咨询管理器<br/>TherapySessionManager"]
+        D1["加载患者数据"]
+        D2["获取患者回应"]
+        D3["评估对话效果"]
+        D4["更新抑郁程度"]
+        D5["保存咨询记录"]
+    end
+    
+    subgraph "🔧 核心组件层"
+        E["事件生成器<br/>EventGenerator"]
+        E1["生成事件"]
+        E2["构建上下文"]
+        E3["规则生成"]
+        
+        F["AI客户端工厂<br/>AIClientFactory"]
+        F1["获取客户端"]
+        F2["检查可用提供商"]
+        
+        G["智能体系统<br/>Agent System"]
+        G1["响应情况"]
+        G2["内心独白"]
+        G3["处理事件影响"]
+    end
+    
+    subgraph "🤖 AI分析层"
+        H["模板分析器<br/>TemplateAnalyzer"]
+        H1["分析模式"]
+        H2["选择最佳模式"]
+        
+        I["上下文提取器<br/>ContextExtractor"]
+        I1["提取上下文"]
+        
+        J["逻辑验证器<br/>LogicValidator"]
+        J1["验证并修复"]
+        
+        K["发散生成器<br/>DivergentGenerator"]
+        K1["从模式生成"]
+    end
+    
+    subgraph "💻 AI客户端层"
+        L["Gemini客户端"]
+        L1["生成回应"]
+        
+        M["DeepSeek客户端"]
+        M1["生成回应"]
+    end
+    
+    subgraph "👥 智能体层"
+        N["学生智能体<br/>李明"]
+        N1["获取抑郁症状"]
+        N2["学习行为"]
+        
+        O["家庭智能体"]
+        O1["父亲：设定期望"]
+        O2["母亲：安慰孩子"]
+        
+        P["学校智能体"]
+        P1["老师：反馈表现"]
+        P2["霸凌者：霸凌行为"]
+        P3["好友：情感支持"]
+        
+        Q["心理咨询师"]
+        Q1["提供督导"]
+        Q2["分析患者状态"]
+    end
+    
+    subgraph "📊 数据模型层"
+        R["心理学模型"]
+        R1["心理状态"]
+        R2["生活事件"]
+        R3["关系模型"]
+        
+        S["配置系统"]
+        S1["角色配置"]
+        S2["事件模板"]
+        S3["阶段配置"]
+        
+        T["数据存储"]
+        T1["最终报告"]
+        T2["每日状态"]
+        T3["咨询记录"]
+    end
+    
+    subgraph "🌐 外部服务"
+        U["Google Gemini API"]
+        V["DeepSeek API"]
+    end
+    
+    %% 主要数据流向（垂直方向）
+    A --> C
+    B --> D
+    A --> A1
+    A1 --> A2
+    A2 --> A3
+    A3 --> A4
+    B --> B1
+    B1 --> B2
+    
+    C --> C1
+    C1 --> C2
+    C2 --> C3
+    C3 --> C4
+    C4 --> C5
+    
+    D --> D1
+    D1 --> D2
+    D2 --> D3
+    D3 --> D4
+    D4 --> D5
+    
+    C --> E
+    D --> F
+    E --> E1
+    E1 --> E2
+    E2 --> E3
+    
+    F --> F1
+    F1 --> F2
+    
+    G --> G1
+    G1 --> G2
+    G2 --> G3
+    
+    E --> H
+    H --> H1
+    H1 --> H2
+    
+    E --> I
+    I --> I1
+    
+    E --> J
+    J --> J1
+    
+    E --> K
+    K --> K1
+    
+    F --> L
+    F --> M
+    L --> L1
+    M --> M1
+    
+    G --> N
+    G --> O
+    G --> P
+    D --> Q
+    
+    N --> N1
+    N1 --> N2
+    
+    O --> O1
+    O1 --> O2
+    
+    P --> P1
+    P1 --> P2
+    P2 --> P3
+    
+    Q --> Q1
+    Q1 --> Q2
+    
+    N --> R
+    O --> R
+    P --> R
+    R --> R1
+    R1 --> R2
+    R2 --> R3
+    
+    C --> S
+    S --> S1
+    S1 --> S2
+    S2 --> S3
+    
+    C --> T
+    D --> T
+    T --> T1
+    T1 --> T2
+    T2 --> T3
+    
+    L --> U
+    M --> V
+    
+    %% 样式设置
+    classDef userInterface fill:#e3f2fd,stroke:#1976d2,stroke-width:3px,font-size:14px
+    classDef businessLogic fill:#f3e5f5,stroke:#7b1fa2,stroke-width:3px,font-size:14px
+    classDef coreComponents fill:#e8f5e8,stroke:#388e3c,stroke-width:3px,font-size:14px
+    classDef analyzers fill:#fff8e1,stroke:#f57c00,stroke-width:3px,font-size:14px
+    classDef aiClients fill:#fce4ec,stroke:#c2185b,stroke-width:3px,font-size:14px
+    classDef agents fill:#e0f2f1,stroke:#00695c,stroke-width:3px,font-size:14px
+    classDef dataModels fill:#fff3e0,stroke:#ef6c00,stroke-width:3px,font-size:14px
+    classDef external fill:#f1f8e9,stroke:#558b2f,stroke-width:3px,font-size:14px
+    
+    class A,A1,A2,A3,A4,B,B1,B2 userInterface
+    class C,C1,C2,C3,C4,C5,D,D1,D2,D3,D4,D5 businessLogic
+    class E,E1,E2,E3,F,F1,F2,G,G1,G2,G3 coreComponents
+    class H,H1,H2,I,I1,J,J1,K,K1 analyzers
+    class L,L1,M,M1 aiClients
+    class N,N1,N2,O,O1,O2,P,P1,P2,P3,Q,Q1,Q2 agents
+    class R,R1,R2,R3,S,S1,S2,S3,T,T1,T2,T3 dataModels
+    class U,V external

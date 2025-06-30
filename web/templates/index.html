@@ -1,0 +1,275 @@
+{% extends "base.html" %}
+
+{% block title %}首页 - 抑郁症模拟系统{% endblock %}
+
+{% block content %}
+<!-- 英雄区域 -->
+<section class="hero-section">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-lg-6">
+                <h1 class="display-4 fw-bold mb-4">抑郁症模拟系统</h1>
+                <p class="lead mb-4">
+                    基于CAD-MD认知-情感动力学模型，实现青少年抑郁症发展过程的深度模拟和AI心理治疗。
+                    为心理健康研究、临床训练和干预评估提供科学工具。
+                </p>
+                <div class="d-flex gap-3">
+                    <a href="{{ url_for('simulation_page') }}" class="btn btn-light btn-lg">
+                        🔬 开始模拟
+                    </a>
+                    <a href="{{ url_for('therapy_page') }}" class="btn btn-outline-light btn-lg">
+                        💬 AI对话治疗
+                    </a>
+                </div>
+            </div>
+            <div class="col-lg-6 text-center">
+                <div class="feature-highlight p-4 rounded bg-white bg-opacity-10">
+                    <h3 class="h4 mb-3">🧠 核心特性</h3>
+                    <div class="row g-3">
+                        <div class="col-6">
+                            <div class="text-center">
+                                <h5 class="h6">认知建模</h5>
+                                <small>贝克认知三角</small>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="text-center">
+                                <h5 class="h6">动力学演化</h5>
+                                <small>30天发展过程</small>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="text-center">
+                                <h5 class="h6">AI治疗师</h5>
+                                <small>专业心理引导</small>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="text-center">
+                                <h5 class="h6">数据分析</h5>
+                                <small>可视化报告</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- 功能模块 -->
+<section class="py-5">
+    <div class="container">
+        <h2 class="text-center mb-5">系统功能模块</h2>
+        <div class="row g-4">
+            <!-- 心理模拟模块 -->
+            <div class="col-lg-4">
+                <div class="card h-100 simulation-card">
+                    <div class="card-body text-center p-4">
+                        <div class="feature-icon mb-3">
+                            <i style="font-size: 3rem;">🧪</i>
+                        </div>
+                        <h4 class="card-title">心理发展模拟</h4>
+                        <p class="card-text">
+                            基于CAD-MD模型，模拟青少年在压力环境下的心理状态演化过程，
+                            包括认知扭曲、情感变化和行为模式的动态发展。
+                        </p>
+                        <ul class="list-unstyled text-start">
+                            <li>• 30天心理发展轨迹</li>
+                            <li>• 多角色交互事件</li>
+                            <li>• 认知-情感闭环机制</li>
+                            <li>• 可配置场景参数</li>
+                        </ul>
+                        <a href="{{ url_for('simulation_page') }}" class="btn btn-light mt-3">
+                            开始模拟 →
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- AI对话治疗模块 -->
+            <div class="col-lg-4">
+                <div class="card h-100 therapy-card">
+                    <div class="card-body text-center p-4">
+                        <div class="feature-icon mb-3">
+                            <i style="font-size: 3rem;">🤖</i>
+                        </div>
+                        <h4 class="card-title">AI对话治疗</h4>
+                        <p class="card-text">
+                            AI心理咨询师与AI患者的自动化对话治疗，展示专业心理干预技术，
+                            实时监测治疗进展和突破时刻。
+                        </p>
+                        <ul class="list-unstyled text-start">
+                            <li>• 专业治疗技术应用</li>
+                            <li>• 认知行为疗法(CBT)</li>
+                            <li>• 实时进展分析</li>
+                            <li>• 治疗效果评估</li>
+                        </ul>
+                        <a href="{{ url_for('therapy_page') }}" class="btn btn-light mt-3">
+                            开始治疗 →
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 数据分析模块 -->
+            <div class="col-lg-4">
+                <div class="card h-100 analysis-card">
+                    <div class="card-body text-center p-4">
+                        <div class="feature-icon mb-3">
+                            <i style="font-size: 3rem;">📊</i>
+                        </div>
+                        <h4 class="card-title">数据分析可视化</h4>
+                        <p class="card-text">
+                            深度分析模拟数据，生成专业的心理健康报告，
+                            可视化展示抑郁症发展轨迹和干预效果。
+                        </p>
+                        <ul class="list-unstyled text-start">
+                            <li>• 心理状态趋势图</li>
+                            <li>• CAD模型深度分析</li>
+                            <li>• 事件影响评估</li>
+                            <li>• 治疗效果对比</li>
+                        </ul>
+                        <a href="{{ url_for('analysis_page') }}" class="btn btn-light mt-3">
+                            查看分析 →
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- 技术特性 -->
+<section class="py-5 bg-light">
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-6">
+                <h3 class="mb-4">技术特性</h3>
+                <div class="row g-3">
+                    <div class="col-sm-6">
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="feature-icon me-3">🧠</div>
+                            <div>
+                                <h6 class="mb-1">CAD-MD模型</h6>
+                                <small class="text-muted">认知-情感动力学</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-6">
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="feature-icon me-3">🔄</div>
+                            <div>
+                                <h6 class="mb-1">动态演化</h6>
+                                <small class="text-muted">实时状态更新</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-6">
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="feature-icon me-3">🎯</div>
+                            <div>
+                                <h6 class="mb-1">场景驱动</h6>
+                                <small class="text-muted">事件触发机制</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-6">
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="feature-icon me-3">📈</div>
+                            <div>
+                                <h6 class="mb-1">数据可视化</h6>
+                                <small class="text-muted">图表分析报告</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <h3 class="mb-4">应用场景</h3>
+                <div class="list-group list-group-flush">
+                    <div class="list-group-item border-0 px-0">
+                        <h6 class="mb-1">🎓 心理学教育</h6>
+                        <small class="text-muted">抑郁症发展机制的教学演示</small>
+                    </div>
+                    <div class="list-group-item border-0 px-0">
+                        <h6 class="mb-1">🏥 临床训练</h6>
+                        <small class="text-muted">心理咨询师的实践技能培训</small>
+                    </div>
+                    <div class="list-group-item border-0 px-0">
+                        <h6 class="mb-1">🔬 科研分析</h6>
+                        <small class="text-muted">心理干预方法的效果评估</small>
+                    </div>
+                    <div class="list-group-item border-0 px-0">
+                        <h6 class="mb-1">💡 技术验证</h6>
+                        <small class="text-muted">AI在心理健康领域的应用研究</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- 系统状态 -->
+<section class="py-5">
+    <div class="container">
+        <h3 class="text-center mb-4">系统状态</h3>
+        <div class="row g-4">
+            <div class="col-md-3">
+                <div class="card status-card text-center">
+                    <div class="card-body">
+                        <h5 class="card-title">配置系统</h5>
+                        <p class="card-text text-success">✅ 正常</p>
+                        <small class="text-muted">JSON配置已加载</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card status-card text-center">
+                    <div class="card-body">
+                        <h5 class="card-title">AI服务</h5>
+                        <p class="card-text text-success">✅ 连接</p>
+                        <small class="text-muted">DeepSeek API</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card status-card text-center">
+                    <div class="card-body">
+                        <h5 class="card-title">CAD模型</h5>
+                        <p class="card-text text-success">✅ 已集成</p>
+                        <small class="text-muted">认知动力学</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card status-card text-center">
+                    <div class="card-body">
+                        <h5 class="card-title">Web界面</h5>
+                        <p class="card-text text-success">✅ 运行中</p>
+                        <small class="text-muted">实时更新</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- 快速开始 -->
+<section class="py-5 bg-primary text-white">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-lg-8">
+                <h3 class="mb-2">准备开始探索？</h3>
+                <p class="mb-0">选择一个功能模块开始您的抑郁症模拟和分析之旅</p>
+            </div>
+            <div class="col-lg-4 text-lg-end">
+                <div class="btn-group" role="group">
+                    <a href="{{ url_for('simulation_page') }}" class="btn btn-light">开始模拟</a>
+                    <a href="{{ url_for('therapy_page') }}" class="btn btn-outline-light">AI治疗</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %} 

@@ -6,8 +6,9 @@ class TeacherAgent(BaseAgent):
     """教师Agent"""
     
     def __init__(self, name: str, age: int, personality: Dict[str, Any], 
-                 ai_client: Union['GeminiClient', 'DeepSeekClient'], subject: str):
-        super().__init__(name, age, personality, ai_client)
+                 ai_client: Union['GeminiClient', 'DeepSeekClient'], subject: str,
+                 psychological_model = None):
+        super().__init__(name, age, personality, ai_client, psychological_model)
         self.subject = subject
         self.teaching_experience = personality.get("experience_years", 5)
         self.teaching_style = personality.get("teaching_style", "传统型")
@@ -77,8 +78,9 @@ class ClassmateAgent(BaseAgent):
     """同学Agent"""
     
     def __init__(self, name: str, age: int, personality: Dict[str, Any], 
-                 ai_client: Union['GeminiClient', 'DeepSeekClient'], relationship_with_protagonist: str):
-        super().__init__(name, age, personality, ai_client)
+                 ai_client: Union['GeminiClient', 'DeepSeekClient'], relationship_with_protagonist: str,
+                 psychological_model = None):
+        super().__init__(name, age, personality, ai_client, psychological_model)
         self.relationship_with_protagonist = relationship_with_protagonist
         self.academic_level = personality.get("academic_performance", 6)  # 1-10
         self.popularity = personality.get("popularity", 5)  # 1-10
@@ -140,9 +142,9 @@ class BullyAgent(ClassmateAgent):
     """霸凌者Agent - 继承自ClassmateAgent"""
     
     def __init__(self, name: str, age: int, personality: Dict[str, Any], 
-                 ai_client: Union['GeminiClient', 'DeepSeekClient']):
+                 ai_client: Union['GeminiClient', 'DeepSeekClient'], psychological_model = None):
         # 设置为霸凌者关系
-        super().__init__(name, age, personality, ai_client, "霸凌者")
+        super().__init__(name, age, personality, ai_client, "霸凌者", psychological_model)
         self.aggression_level = personality.get("aggression", 8)  # 1-10
         self.insecurity_level = personality.get("insecurity", 7)  # 1-10
         self.need_for_control = personality.get("control_need", 8)  # 1-10
@@ -182,9 +184,9 @@ class BestFriendAgent(ClassmateAgent):
     """最好朋友Agent - 继承自ClassmateAgent"""
     
     def __init__(self, name: str, age: int, personality: Dict[str, Any], 
-                 ai_client: Union['GeminiClient', 'DeepSeekClient']):
+                 ai_client: Union['GeminiClient', 'DeepSeekClient'], psychological_model = None):
         # 设置为好友关系
-        super().__init__(name, age, personality, ai_client, "好友")
+        super().__init__(name, age, personality, ai_client, "好友", psychological_model)
         self.loyalty_level = personality.get("loyalty", 9)  # 1-10
         self.emotional_support_ability = personality.get("support_ability", 8)  # 1-10
         self.shared_interests = personality.get("shared_interests", ["学习", "运动"])

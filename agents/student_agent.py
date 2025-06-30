@@ -1,13 +1,14 @@
 from typing import Dict, List, Any, Union
 from agents.base_agent import BaseAgent
-from models.psychology_models import EmotionState, DepressionLevel
+from models.psychology_models import EmotionState, DepressionLevel, CognitiveAffectiveState
 
 class StudentAgent(BaseAgent):
     """学生Agent - 主角，将经历抑郁症发展过程"""
     
     def __init__(self, name: str, age: int, personality: Dict[str, Any], 
-                 ai_client: Union['GeminiClient', 'DeepSeekClient']):
-        super().__init__(name, age, personality, ai_client)
+                 ai_client: Union['GeminiClient', 'DeepSeekClient'],
+                 psychological_model = None):
+        super().__init__(name, age, personality, ai_client, psychological_model)
         
         # 学生特有属性
         self.grade = "高二"
@@ -20,6 +21,13 @@ class StudentAgent(BaseAgent):
         
         # 初始化学业压力
         self.psychological_state.academic_pressure = 6
+        
+        # 确保CAD状态存在，添加对cad_state的支持
+        if not hasattr(self.psychological_state, 'cad_state') or self.psychological_state.cad_state is None:
+            self.psychological_state.cad_state = CognitiveAffectiveState()
+        
+        # 直接提供cad_state属性访问
+        self.cad_state = self.psychological_state.cad_state
         
     def get_role_description(self) -> str:
         """获取角色描述"""

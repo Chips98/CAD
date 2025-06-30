@@ -1,0 +1,86 @@
+{
+  "llm_integration": {
+    "event_generation": {
+      "enabled": true,
+      "generation_probability": 0.3,
+      "quality_threshold": 0.7,
+      "max_templates_per_category": 5,
+      "template_similarity_threshold": 0.8
+    },
+    "psychological_assessment": {
+      "enabled": true,
+      "confidence_threshold": 0.6,
+      "rule_llm_weight_ratio": [0.6, 0.4],
+      "enable_fallback": true,
+      "assessment_timeout": 30
+    },
+    "therapy_enhancement": {
+      "enabled": true,
+      "response_generation": true,
+      "effect_assessment": true,
+      "conversation_analysis": true
+    }
+  },
+  "probabilistic_modeling": {
+    "enabled": true,
+    "impact_variation_sigma": 0.3,
+    "extreme_event_probability": 0.05,
+    "individual_variance_factor": 0.2,
+    "stress_dependent_variance": true,
+    "temporal_uncertainty": true,
+    "social_context_variance": true
+  },
+  "nonlinear_effects": {
+    "enabled": true,
+    "threshold_value": 3.0,
+    "saturation_steepness": 5.0,
+    "cumulative_decay_rate": 0.9,
+    "apply_threshold_effect": true,
+    "apply_saturation_effect": true,
+    "apply_cumulative_effect": true
+  },
+  "bidirectional_impact": {
+    "enabled": true,
+    "negativity_bias": 1.3,
+    "positivity_reduction": 0.8,
+    "resilience_factor": 0.3,
+    "recovery_amplification": 1.2,
+    "momentum_threshold": 3
+  },
+  "hybrid_calculation": {
+    "rule_weight": 0.6,
+    "llm_weight": 0.4,
+    "enable_weight_adaptation": false,
+    "adaptation_learning_rate": 0.1,
+    "quality_based_weighting": true
+  },
+  "quality_control": {
+    "enable_validation": true,
+    "content_filtering": true,
+    "forbidden_words": ["死", "杀", "血", "暴力", "性", "毒品"],
+    "age_appropriateness_check": true,
+    "logical_consistency_check": true
+  },
+  "performance_optimization": {
+    "enable_caching": true,
+    "cache_size": 1000,
+    "cache_ttl_minutes": 60,
+    "batch_processing": false,
+    "async_processing": true,
+    "max_concurrent_requests": 5
+  },
+  "monitoring": {
+    "enable_detailed_logging": true,
+    "track_generation_statistics": true,
+    "track_assessment_accuracy": true,
+    "save_calculation_history": true,
+    "history_max_size": 100
+  },
+  "experimental_features": {
+    "multi_model_ensemble": false,
+    "adaptive_prompting": false,
+    "context_aware_generation": true,
+    "personality_based_variance": true,
+    "temporal_pattern_learning": false
+  }
+}

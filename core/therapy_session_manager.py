@@ -9,21 +9,33 @@ import asyncio
 from datetime import datetime 
 from typing import Optional, Union, Dict, List, Any
 from agents.therapist_agent import TherapistAgent 
-import config
+from models.cad_state_mapper import CADStateMapper
+from models.psychology_models import CognitiveAffectiveState
+from utils.psychology_display import (
+    display_patient_response,
+    create_session_header, 
+    console as display_console
+)
+from config.config_loader import load_therapy_guidance_config, load_simulation_params
 
-# 可配置的常量，可以从config.py导入或在这里定义
-CONVERSATION_HISTORY_LENGTH = 20
-MAX_EVENTS_TO_SHOW = 5
+# 可配置的常量，现在从JSON配置文件加载
+DEFAULT_CONVERSATION_HISTORY_LENGTH = 20
+DEFAULT_MAX_EVENTS_TO_SHOW = 20
 
 console = Console()
 
-# 抑郁程度映射（用于恢复机制）
+# 抑郁程度映射（10级精细分级系统）
 DEPRESSION_LEVELS = {
-    "HEALTHY": 0,      # 健康
-    "MILD_RISK": 1,    # 轻度风险  
-    "MODERATE": 2,     # 中度抑郁
-    "SEVERE": 3,       # 重度抑郁
-    "CRITICAL": 4      # 严重抑郁
+    "OPTIMAL": 0,          # 最佳状态
+    "HEALTHY": 1,          # 健康正常
+    "MINIMAL_SYMPTOMS": 2, # 最小症状
+    "MILD_RISK": 3,        # 轻度风险
+    "MILD": 4,             # 轻度抑郁
+    "MODERATE_MILD": 5,    # 中轻度抑郁
+    "MODERATE": 6,         # 中度抑郁
+    "MODERATE_SEVERE": 7,  # 中重度抑郁
+    "SEVERE": 8,           # 重度抑郁
+    "CRITICAL": 9          # 极重度抑郁
 }
 
 # 反向映射
@@ -44,14 +56,20 @@ class TherapySessionManager:
         self.patient_data         = None
         self.conversation_history = []
         
-        # 使用传入的配置或config中的默认值
-        self.conversation_history_length = conversation_history_length or getattr(config, 'CONVERSATION_HISTORY_LENGTH', 20)
-        self.max_events_to_show = max_events_to_show or getattr(config, 'MAX_EVENTS_TO_SHOW', 20)
+        # 加载配置
+        self._load_therapy_config()
         
-        # 督导相关的运行时设置（可在程序中动态调整）
-        self.enable_supervision = getattr(config, 'ENABLE_SUPERVISION', True)
-        self.supervision_interval = getattr(config, 'SUPERVISION_INTERVAL', 3)
-        self.supervision_analysis_depth = getattr(config, 'SUPERVISION_ANALYSIS_DEPTH', 'COMPREHENSIVE')
+        # 使用传入的配置或从JSON配置文件中的默认值
+        self.conversation_history_length = conversation_history_length or self.therapy_config.get('conversation_settings', {}).get('conversation_history_length', DEFAULT_CONVERSATION_HISTORY_LENGTH)
+        self.max_events_to_show = max_events_to_show or self.therapy_config.get('conversation_settings', {}).get('max_events_to_show', DEFAULT_MAX_EVENTS_TO_SHOW)
+        
+        # 督导相关的运行时设置（从JSON配置加载）
+        supervision_settings = self.therapy_config.get('supervision_settings', {})
+        conversation_settings = self.therapy_config.get('conversation_settings', {})
+        
+        self.enable_supervision = conversation_settings.get('enable_supervision', True)
+        self.supervision_interval = supervision_settings.get('supervision_interval', 3)
+        self.supervision_analysis_depth = conversation_settings.get('supervision_analysis_depth', 'COMPREHENSIVE')
         
         self.current_patient_file_path: Optional[Path] = None # 新增，用于存储加载文件的原始路径
         self.current_simulation_id: Optional[str] = None # 新增，用于存储当前模拟的ID
@@ -65,6 +83,25 @@ class TherapySessionManager:
         self.session_effectiveness_scores: List[float] = []  # 每轮对话的效果分数
         
         console.print(f"[debug]TherapySessionManager initialized with history_length={self.conversation_history_length}, max_events={self.max_events_to_show}, supervision_interval={self.supervision_interval}[/debug]")
+
+    def _load_therapy_config(self):
+        """加载人-AI对话治疗配置"""
+        try:
+            self.therapy_config = load_therapy_guidance_config("human_therapy")
+            console.print(f"[debug]已加载人-AI对话治疗配置[/debug]")
+        except Exception as e:
+            console.print(f"[yellow]加载治疗配置失败，使用默认设置: {e}[/yellow]")
+            self.therapy_config = {
+                'conversation_settings': {
+                    'conversation_history_length': DEFAULT_CONVERSATION_HISTORY_LENGTH,
+                    'max_events_to_show': DEFAULT_MAX_EVENTS_TO_SHOW,
+                    'enable_supervision': True,
+                    'supervision_analysis_depth': 'COMPREHENSIVE'
+                },
+                'supervision_settings': {
+                    'supervision_interval': 3
+                }
+            }
 
     def _format_final_report_data(self, report_data: dict, file_path: Path, is_part_of_all_history: bool = False) -> dict:
         """格式化从final_report.json加载的数据"""
@@ -630,6 +667,18 @@ class TherapySessionManager:
                 recovery_context += f"\n        - 治疗联盟：你与咨询师的关系评分为 {self.therapeutic_alliance_score:.1f}/10"
             elif current_value > initial_value:
                 recovery_context = f"\n        - 治疗挑战：你的状态从 {self.initial_depression_level} 变为 {self.current_depression_level}，你可能感到更加困难"
+        
+        # === 新增：深度认知状态分析 ===
+        cad_analysis = self._generate_cognitive_state_analysis()
+        cognitive_instruction = ""
+        if cad_analysis:
+            cognitive_instruction = f"""
+            
+            === 重要：你的深层心理认知分析 ===
+            {cad_analysis}
+            
+            请严格按照上述深层认知状态来回应治疗师，让你的每一句话都体现出这些内在的信念、思维模式和行为特征。
+            """
 
         prompt = f"""
         你是{self.patient_data.get('name', '李明')}，一个{self.patient_data.get('age', 17)}岁的高中生，正在接受心理咨询。
@@ -649,6 +698,8 @@ class TherapySessionManager:
 
         你的性格特点：
         {chr(10).join([f"- {trait}" for trait in self._get_personality_traits_description()])}
+        
+        {cognitive_instruction}
 
         对话背景：
         {context_note} (对话历史长度配置为 {self.conversation_history_length} 轮)
@@ -672,6 +723,31 @@ class TherapySessionManager:
         """
         return prompt
 
+    def _get_patient_display_data(self) -> Dict[str, Any]:
+        """获取用于显示的患者数据，包含完整的心理状态信息"""
+        if not self.patient_data:
+            return {'current_mental_state': {}}
+        
+        # 从患者数据中提取心理状态
+        patient_state = {
+            'name': self.patient_data.get('name', '李明'),
+            'age': self.patient_data.get('age', 17),
+            'current_mental_state': {
+                'emotion': '焦虑',  # 默认值，实际可能需要从状态推断
+                'depression_level': self.patient_data.get('depression_level', 'MODERATE'),
+                'stress_level': 8,  # 可以从其他数据推断
+                'self_esteem': 3,
+                'social_connection': 4,
+                'academic_pressure': 7,
+            }
+        }
+        
+        # 尝试从最新状态或CAD状态中获取更详细信息
+        if 'cad_state' in self.patient_data:
+            patient_state['current_mental_state']['cad_state'] = self.patient_data['cad_state']
+        
+        return patient_state
+    
     async def get_patient_response(self, therapist_input: str) -> str:
         """获取AI生成的患者对治疗师输入的回应。"""
         if not self.patient_data:
@@ -687,6 +763,64 @@ class TherapySessionManager:
         except Exception as e:
             console.print(f"[red]生成患者回应时出错: {e}[/red]")
             return "（患者沉默不语，看起来很难受...也许是网络或API出错了。）"
+    
+    async def process_therapist_message(self, therapist_message: str) -> str:
+        """
+        处理治疗师消息，生成患者回应，并在终端显示增强的心理状态信息
+        这个方法将被Web应用调用
+        
+        Args:
+            therapist_message: 治疗师发送的消息
+            
+        Returns:
+            患者的回应
+        """
+        # 生成患者回应
+        patient_response = await self.get_patient_response(therapist_message)
+        
+        # 获取患者状态数据用于显示
+        patient_display_data = self._get_patient_display_data()
+        
+        # 在终端显示增强的患者回应和心理状态
+        display_patient_response(
+            patient_response,
+            patient_display_data,
+            turn_number=len(self.conversation_history) + 1
+        )
+        
+        # 记录对话历史
+        self.conversation_history.append({
+            'therapist': therapist_message,
+            'patient': patient_response,
+            'timestamp': datetime.now().isoformat()
+        })
+        
+        return patient_response
+    
+    def get_patient_info(self) -> Dict[str, Any]:
+        """获取患者基本信息"""
+        if not self.patient_data:
+            return {'name': '未知', 'age': '未知', 'depression_level': '未知'}
+        
+        return {
+            'name': self.patient_data.get('name', '未知'),
+            'age': self.patient_data.get('age', '未知'),
+            'depression_level': self.patient_data.get('depression_level', '未知'),
+            'data_source': getattr(self, 'loaded_data_type', '未知')
+        }
+    
+    def get_session_progress(self) -> Dict[str, Any]:
+        """获取会话进展信息"""
+        return {
+            'total_exchanges': len(self.conversation_history),
+            'therapeutic_alliance_score': self.therapeutic_alliance_score,
+            'current_depression_level': self.current_depression_level or 'MODERATE',
+            'session_effectiveness_scores': self.session_effectiveness_scores
+        }
+    
+    def get_dialogue_history(self) -> List[Dict[str, Any]]:
+        """获取对话历史"""
+        return self.conversation_history[-10:]  # 返回最近10轮对话
 
     async def get_therapist_supervision(self, therapist_input: str, patient_response: str, supervision_interval: int = 3) -> str:
         """获取对当前对话交互的专业督导建议。"""
@@ -1118,6 +1252,136 @@ class TherapySessionManager:
             expand       = False
         ))
 
+    def _generate_cognitive_state_analysis(self) -> str:
+        """
+        生成基于CAD-MD模型的深度认知状态分析
+        从患者数据中提取认知状态信息，使用CADStateMapper进行分析
+        """
+        if not self.patient_data:
+            return ""
+        
+        # 尝试从患者数据中获取CAD状态
+        # 检查是否有完整历史数据（包含CAD状态）
+        cad_state_dict = None
+        
+        # 从最新的状态数据中查找CAD状态
+        if 'all_daily_events_combined' in self.patient_data:
+            # 如果有完整历史，尝试从模拟日志数据获取
+            # 这里可能需要从文件路径重新读取最新的状态
+            simulation_id = self.patient_data.get('simulation_id')
+            if simulation_id and self.current_patient_file_path:
+                try:
+                    # 尝试读取最新的日志文件
+                    simulation_dir = self.current_patient_file_path
+                    if simulation_dir.is_file():
+                        simulation_dir = simulation_dir.parent
+                    
+                    # 查找最新的day状态文件
+                    day_files = list(simulation_dir.glob("day_*_state.json"))
+                    if day_files:
+                        # 按文件名排序，获取最后一天
+                        day_files.sort(key=lambda x: int(x.stem.split('_')[1]))
+                        latest_day_file = day_files[-1]
+                        
+                        with open(latest_day_file, 'r', encoding='utf-8') as f:
+                            day_data = json.load(f)
+                        
+                        protagonist_state = day_data.get("protagonist", {}).get("current_mental_state", {})
+                        cad_state_dict = protagonist_state.get("cad_state", {})
+                except Exception as e:
+                    console.print(f"[yellow]获取CAD状态时出错: {e}[/yellow]")
+        
+        # 如果没有找到CAD状态，使用默认值（基于抑郁程度推断）
+        if not cad_state_dict or not any(cad_state_dict.values()):
+            depression_level = self.patient_data.get('depression_level', 'MODERATE')
+            cad_state_dict = self._estimate_cad_from_depression_level(depression_level)
+        
+        # 使用CADStateMapper生成分析
+        try:
+            mapper = CADStateMapper()
+            
+            # 为患者生成深度分析
+            patient_analysis = mapper.generate_patient_prompt_analysis(cad_state_dict)
+            return patient_analysis
+            
+        except Exception as e:
+            console.print(f"[yellow]生成CAD状态分析时出错: {e}[/yellow]")
+            return self._generate_fallback_cognitive_analysis()
+    
+    def _estimate_cad_from_depression_level(self, depression_level: str) -> dict:
+        """
+        基于抑郁程度估算CAD状态
+        当无法获取具体CAD数据时使用
+        """
+        if depression_level == 'CRITICAL':
+            return {
+                'affective_tone': -9.0,
+                'core_beliefs': {'self_belief': -9.0, 'world_belief': -8.5, 'future_belief': -9.5},
+                'cognitive_processing': {'rumination': 9.5, 'distortions': 9.0},
+                'behavioral_inclination': {'social_withdrawal': 9.0, 'avolition': 9.5}
+            }
+        elif depression_level == 'SEVERE':
+            return {
+                'affective_tone': -7.5,
+                'core_beliefs': {'self_belief': -7.0, 'world_belief': -6.5, 'future_belief': -7.5},
+                'cognitive_processing': {'rumination': 8.0, 'distortions': 7.5},
+                'behavioral_inclination': {'social_withdrawal': 7.5, 'avolition': 8.0}
+            }
+        elif depression_level == 'MODERATE':
+            return {
+                'affective_tone': -5.0,
+                'core_beliefs': {'self_belief': -5.0, 'world_belief': -4.5, 'future_belief': -5.5},
+                'cognitive_processing': {'rumination': 6.0, 'distortions': 5.5},
+                'behavioral_inclination': {'social_withdrawal': 5.5, 'avolition': 6.0}
+            }
+        elif depression_level == 'MILD_RISK':
+            return {
+                'affective_tone': -2.5,
+                'core_beliefs': {'self_belief': -2.0, 'world_belief': -1.5, 'future_belief': -2.5},
+                'cognitive_processing': {'rumination': 3.0, 'distortions': 2.5},
+                'behavioral_inclination': {'social_withdrawal': 2.5, 'avolition': 3.0}
+            }
+        else:  # HEALTHY
+            return {
+                'affective_tone': 1.0,
+                'core_beliefs': {'self_belief': 1.0, 'world_belief': 1.5, 'future_belief': 1.0},
+                'cognitive_processing': {'rumination': 1.0, 'distortions': 0.5},
+                'behavioral_inclination': {'social_withdrawal': 0.5, 'avolition': 1.0}
+            }
+    
+    def _generate_fallback_cognitive_analysis(self) -> str:
+        """
+        当CAD分析失败时的备用认知分析
+        """
+        depression_level = self.patient_data.get('depression_level', 'MODERATE')
+        
+        if depression_level in ['CRITICAL', 'SEVERE']:
+            return """
+            你的内心世界被深深的负面信念主导：
+            - 自我信念：你深信自己毫无价值，什么都做不好
+            - 世界观：你觉得这个世界充满敌意和不公
+            - 未来观：你看不到任何希望，觉得一切都不会好转
+            - 思维模式：你的大脑不断重复着负面想法，无法停止
+            - 行为特征：你想要躲避所有人，对什么都提不起兴趣
+            """
+        elif depression_level == 'MODERATE':
+            return """
+            你的内心充满矛盾和痛苦：
+            - 自我信念：你经常质疑自己的能力和价值
+            - 世界观：你觉得世界有时不友善，很难找到温暖
+            - 未来观：你对未来感到不确定和担忧
+            - 思维模式：你时常陷入负面思考的循环中
+            - 行为特征：你越来越喜欢独处，做事缺乏动力
+            """
+        else:
+            return """
+            你的心理状态相对稳定，但仍有一些困扰：
+            - 你对自己还有基本的信心，但有时会怀疑
+            - 你觉得世界总体还是可以的，虽然有时感到困难
+            - 你对未来还抱有一些希望
+            - 你偶尔会有一些负面想法，但不至于完全被困住
+            """
+
     def _get_personality_traits_description(self) -> List[str]:
         """从患者数据中获取角色性格特点描述"""
         personality_traits = []
@@ -1207,12 +1471,18 @@ class TherapySessionManager:
 if __name__ == '__main__':
     async def test_interactive_session():
         try:
-            import config # 确保 config 在这里能被导入
-            if not config.GEMINI_API_KEY or config.GEMINI_API_KEY == "your_gemini_api_key_here":
-                console.print("[red]错误: 请在config.py中设置有效的Gemini API密钥[/red]")
+            # 使用新的JSON配置系统
+            from config.config_loader import load_api_config
+            from core.gemini_client import GeminiClient
+            
+            api_config = load_api_config()
+            gemini_config = api_config.get('providers', {}).get('gemini', {})
+            
+            if not gemini_config.get('api_key') or gemini_config.get('api_key') == "your_gemini_api_key_here":
+                console.print("[red]错误: 请在config/api_config.json中设置有效的Gemini API密钥[/red]")
                 return
             
-            gemini_client = GeminiClient(api_key=config.GEMINI_API_KEY)
+            gemini_client = GeminiClient(api_key=gemini_config['api_key'])
             # therapist_agent = TherapistAgent("专业心理督导", gemini_client) # Manager会自己创建默认的
             
             # 测试时使用的配置值
@@ -1260,8 +1530,8 @@ if __name__ == '__main__':
             else:
                 console.print("[red]无法加载患者数据，交互式会话测试失败。[/red]")
 
-        except ImportError:
-            console.print("[red]错误: 请创建config.py并配置GEMINI_API_KEY (或确保其在PYTHONPATH中)[/red]")
+        except ImportError as e:
+            console.print(f"[red]错误: 导入失败 {e} (请检查配置文件)[/red]")
         except Exception as e:
             console.print(f"[red]交互式会话测试发生错误: {e}[/red]")
             import traceback

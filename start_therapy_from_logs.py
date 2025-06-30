@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+# 首先导入utils包以设置终端编码
+import utils
+
 """
 从现有log直接开始心理咨询 (已重构以支持模拟子文件夹)
 读取特定模拟运行的数据，立即开始与李明的心理咨询对话
@@ -27,11 +30,12 @@ from core.gemini_client import GeminiClient
 from core.deepseek_client import DeepSeekClient  # 添加 DeepSeek 客户端
 from agents.therapist_agent import TherapistAgent # 需要初始化Manager
 
-# 假设config.py在项目根目录下
+# 使用新的JSON配置系统
 try:
-    import config
+    from config.config_loader import load_api_config, load_simulation_params
+    from config.scenario_selector import select_scenario_interactive
 except ImportError:
-    print("错误: config.py 未找到或无法导入。请确保它在项目根目录中。")
+    print("错误: 配置系统未找到。请确保config/目录下的配置文件存在。")
     sys.exit(1)
 
 console = Console()
@@ -41,38 +45,50 @@ def get_api_client() -> Union[GeminiClient, DeepSeekClient]:
     根据配置获取 API 客户端。
     如果两个 API 密钥都配置了，让用户选择使用哪个。
     """
-    has_gemini = config.GEMINI_API_KEY and config.GEMINI_API_KEY != "your_gemini_api_key_here"
-    has_deepseek = config.DEEPSEEK_API_KEY and config.DEEPSEEK_API_KEY != ""
+    # 加载配置
+    api_config = load_api_config()
+    providers = api_config.get('providers', {})
+    
+    # 检查API配置
+    gemini_config = providers.get('gemini', {})
+    deepseek_config = providers.get('deepseek', {})
+    
+    has_gemini = (gemini_config.get('enabled', False) and 
+                  gemini_config.get('api_key') and 
+                  gemini_config.get('api_key') != "your_gemini_api_key_here")
+    has_deepseek = (deepseek_config.get('enabled', False) and 
+                    deepseek_config.get('api_key') and 
+                    deepseek_config.get('api_key') != "")
     
     if not has_gemini and not has_deepseek:
-        console.print("[red]错误: 请在 config.py 中至少设置一个有效的 API 密钥 (GEMINI_API_KEY 或 DEEPSEEK_API_KEY)。[/red]")
+        console.print("[red]错误: 请在 config/api_config.json 中至少设置一个有效的 API 密钥。[/red]")
         sys.exit(1)
     
     # 如果只有一个 API 可用，直接使用
     if has_gemini and not has_deepseek:
         console.print("[cyan]使用 Gemini API...[/cyan]")
-        return GeminiClient(api_key=config.GEMINI_API_KEY)
+        return GeminiClient(api_key=gemini_config['api_key'])
     elif has_deepseek and not has_gemini:
         console.print("[cyan]使用 DeepSeek API...[/cyan]")
         return DeepSeekClient(
-            api_key=config.DEEPSEEK_API_KEY,
-            base_url=config.DEEPSEEK_BASE_URL,
-            model=config.DEEPSEEK_MODEL
+            api_key=deepseek_config['api_key'],
+            base_url=deepseek_config.get('base_url', 'https://api.deepseek.com'),
+            model=deepseek_config.get('model', 'deepseek-chat')
         )
     
     # 如果两个都可用，检查默认设置
-    default_provider = getattr(config, 'DEFAULT_MODEL_PROVIDER', 'gemini').lower()
+    default_provider = api_config.get('default_provider', 'gemini').lower()
     
     # 如果有默认设置且有效，直接使用
     if default_provider == 'gemini' and has_gemini:
         console.print(f"[cyan]使用默认配置的 Gemini API...[/cyan]")
-        return GeminiClient(api_key=config.GEMINI_API_KEY)
+        return GeminiClient(api_key=gemini_config['api_key'])
     elif default_provider == 'deepseek' and has_deepseek:
         console.print(f"[cyan]使用默认配置的 DeepSeek API...[/cyan]")
         return DeepSeekClient(
-            api_key=config.DEEPSEEK_API_KEY,
-            base_url=config.DEEPSEEK_BASE_URL,
-            model=config.DEEPSEEK_MODEL
+            api_key=deepseek_config['api_key'],
+            base_url=deepseek_config.get('base_url', 'https://api.deepseek.com'),
+            model=deepseek_config.get('model', 'deepseek-chat')
         )
     
     # 让用户选择
@@ -89,8 +105,8 @@ def get_api_client() -> Union[GeminiClient, DeepSeekClient]:
     table.add_column("模型", style="yellow")
     table.add_column("状态", style="magenta")
     
-    table.add_row("1", "Gemini", "gemini-2.0-flash", "✅ 已配置")
-    table.add_row("2", "DeepSeek", config.DEEPSEEK_MODEL, "✅ 已配置")
+    table.add_row("1", "Gemini", gemini_config.get('model', 'gemini-pro'), "✅ 已配置")
+    table.add_row("2", "DeepSeek", deepseek_config.get('model', 'deepseek-chat'), "✅ 已配置")
     
     console.print(table)
     
@@ -99,13 +115,13 @@ def get_api_client() -> Union[GeminiClient, DeepSeekClient]:
         
         if choice == "1":
             console.print("[green]已选择 Gemini API[/green]")
-            return GeminiClient(api_key=config.GEMINI_API_KEY)
+            return GeminiClient(api_key=gemini_config['api_key'])
         elif choice == "2":
             console.print("[green]已选择 DeepSeek API[/green]")
             return DeepSeekClient(
-                api_key=config.DEEPSEEK_API_KEY,
-                base_url=config.DEEPSEEK_BASE_URL,
-                model=config.DEEPSEEK_MODEL
+                api_key=deepseek_config['api_key'],
+                base_url=deepseek_config.get('base_url', 'https://api.deepseek.com'),
+                model=deepseek_config.get('model', 'deepseek-chat')
             )
         else:
             console.print("[red]无效选择，请输入 1 或 2。[/red]")
@@ -134,13 +150,40 @@ def scan_simulation_runs() -> List[Dict[str, Any]]:
             therapy_log_files = list(sim_dir.glob("therapy_session_*.json"))
             therapy_log_files.extend(list(sim_dir.glob("therapy_from_logs_*.json")))
             
+            # 尝试从final_report.json中读取剧本信息
+            scenario_type = "unknown"
+            protagonist_name = "未知"
+            if report_path.exists():
+                try:
+                    with open(report_path, 'r', encoding='utf-8') as f:
+                        report_data = json.load(f)
+                    protagonist_name = report_data.get('protagonist_character_profile', {}).get('name', '未知')
+                    
+                    # 从目录名中提取剧本类型
+                    if 'primary_school_bullying' in sim_dir.name:
+                        scenario_type = 'primary_school_bullying'
+                    elif 'university_graduation_pressure' in sim_dir.name:
+                        scenario_type = 'university_graduation_pressure'
+                    elif 'workplace_pua_depression' in sim_dir.name:
+                        scenario_type = 'workplace_pua_depression'
+                    elif 'default_adolescent' in sim_dir.name:
+                        scenario_type = 'default_adolescent'
+                    else:
+                        # 如果目录名没有剧本信息，尝试从metadata获取，否则默认为default_adolescent
+                        scenario_type = report_data.get('simulation_metadata', {}).get('scenario_type', 'default_adolescent')
+                        
+                except Exception as e:
+                    console.print(f"[yellow]读取{sim_dir.name}的final_report.json失败: {e}[/yellow]")
+            
             run_info = {
                 "id": sim_dir.name,
                 "path": sim_dir,
                 "has_final_report": report_path.exists(),
                 "latest_day_state_file": day_state_files[0] if day_state_files else None,
                 "day_state_count": len(day_state_files),
-                "therapy_log_count": len(therapy_log_files)
+                "therapy_log_count": len(therapy_log_files),
+                "scenario_type": scenario_type,
+                "protagonist_name": protagonist_name
             }
             simulation_runs.append(run_info)
             
@@ -161,6 +204,8 @@ def display_simulation_run_menu(simulation_runs: List[Dict[str, Any]]) -> Dict[s
     table = Table(title="可用的模拟运行")
     table.add_column("选项", style="cyan", no_wrap=True)
     table.add_column("模拟ID (文件夹)", style="green")
+    table.add_column("剧本类型", style="blue")
+    table.add_column("主角", style="purple")
     table.add_column("状态", style="yellow")
     table.add_column("咨询记录数", style="magenta")
     
@@ -184,13 +229,15 @@ def display_simulation_run_menu(simulation_runs: List[Dict[str, Any]]) -> Dict[s
             table.add_row(
                 option_num,
                 run_info["id"],
+                run_info["scenario_type"],
+                run_info["protagonist_name"],
                 ", ".join(status_parts),
                 str(run_info["therapy_log_count"])
             )
             options[option_num] = ("selected_simulation_run", run_info["path"]) # 存储模拟运行的路径
     
-    table.add_row("s", "对话设置", "查看配置信息和使用说明")
-    table.add_row("0", "退出", "退出系统")
+    table.add_row("s", "对话设置", "-", "-", "查看配置信息和使用说明", "-")
+    table.add_row("0", "退出", "-", "-", "退出系统", "-")
     
     console.print(table)
     return options
@@ -379,9 +426,35 @@ def view_all_therapy_sessions_globally():
 
 async def main_loop(api_client: Union[GeminiClient, DeepSeekClient]):
     """主循环，处理用户选择。"""
+    
+    # 首先询问是否按剧本筛选
+    console.print("\n[cyan]📖 选择治疗剧本类型（可选）[/cyan]")
+    console.print("[dim]您可以选择特定剧本类型，或使用全部可用的模拟数据[/dim]")
+    
+    use_scenario_filter = console.input(
+        "[cyan]是否按剧本类型筛选模拟数据？(y/n，默认n): [/cyan]"
+    ).strip().lower()
+    
+    scenario_filter = None
+    if use_scenario_filter in ['y', 'yes', '是']:
+        scenario_filter = select_scenario_interactive("default_adolescent")
+        console.print(f"[green]✅ 将筛选包含 '{scenario_filter}' 的模拟数据[/green]")
 
     while True:
         simulation_runs = scan_simulation_runs()
+        
+        # 如果设置了剧本筛选，进行筛选
+        if scenario_filter:
+            filtered_runs = [
+                run for run in simulation_runs 
+                if scenario_filter in run['scenario_type']
+            ]
+            if filtered_runs:
+                simulation_runs = filtered_runs
+                console.print(f"[green]✅ 筛选出 {len(simulation_runs)} 个匹配 '{scenario_filter}' 的模拟运行[/green]")
+            else:
+                console.print(f"[yellow]⚠️ 未找到包含 '{scenario_filter}' 的模拟数据，显示所有可用数据[/yellow]")
+        
         run_options = display_simulation_run_menu(simulation_runs)
         
         choice = console.input("\n[bold cyan]请选择一个模拟运行或操作 (输入编号): [/bold cyan]").strip().lower()

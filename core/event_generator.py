@@ -1,15 +1,20 @@
 """
-动态事件生成器 - 基于模板分析和智能发散
+动态事件生成器 - 基于模板分析和智能发散 + LLM增强
 根据现有事件模板和人物信息，生成符合逻辑的新事件
+集成LLM事件生成器和混合影响计算器
 """
 
 import random
 import re
+import json
 from typing import Dict, List, Any, Optional, Tuple, Set
 from datetime import datetime
 import logging
 
 from models.psychology_models import LifeEvent, EventType
+from core.llm_event_generator import LLMEventGenerator
+from core.hybrid_impact_calculator import HybridImpactCalculator
+from core.probabilistic_impact import ProbabilisticImpactModel
 
 class EventGenerator:
     """智能事件生成器 - 基于模板分析和发散生成"""
@@ -22,7 +27,22 @@ class EventGenerator:
         self.logger = logging.getLogger(__name__)
         self.event_history = []
         
-        # 新增：分析模板和构建智能生成系统
+        # 加载LLM增强配置
+        self.llm_config = self._load_llm_config()
+        
+        # LLM增强组件
+        self.llm_event_generator = None
+        self.hybrid_calculator = None
+        self.probabilistic_model = None
+        
+        if self.ai_client and self.llm_config.get("llm_integration", {}).get("event_generation", {}).get("enabled", False):
+            self.llm_event_generator = LLMEventGenerator(ai_client)
+            self.hybrid_calculator = HybridImpactCalculator(ai_client, self.llm_config.get("hybrid_calculation", {}))
+            
+        if self.llm_config.get("probabilistic_modeling", {}).get("enabled", False):
+            self.probabilistic_model = ProbabilisticImpactModel(self.llm_config.get("probabilistic_modeling", {}))
+        
+        # 原有的分析模板和构建智能生成系统
         self.template_analyzer = TemplateAnalyzer(event_templates, character_mapping)
         self.context_extractor = ContextExtractor(config, character_mapping)
         self.logic_validator = LogicValidator(config)
@@ -33,7 +53,17 @@ class EventGenerator:
         self.character_context = self.context_extractor.extract_context()
         self.generation_rules = self._build_generation_rules()
         
-        self.logger.info(f"事件生成器初始化完成，分析了{len(self.template_patterns)}个模板模式")
+        self.logger.info(f"增强事件生成器初始化完成，LLM增强: {'启用' if self.llm_event_generator else '禁用'}")
+    
+    def _load_llm_config(self) -> Dict:
+        """加载LLM增强配置"""
+        try:
+            config_path = "/Users/zl_24/Documents/Codes/2025/2025-07/CAD-main/config/llm_enhancement_config.json"
+            with open(config_path, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        except Exception as e:
+            self.logger.warning(f"加载LLM配置失败: {e}")
+            return {}
     
     def _build_generation_rules(self) -> Dict[str, Any]:
         """构建事件生成规则"""
@@ -164,15 +194,91 @@ class EventGenerator:
                            stage_config: Dict,
                            force_unique: bool = True) -> Tuple[str, List[str], int]:
         """
-        智能生成事件 - 基于模板分析和发散生成
+        智能生成事件 - LLM增强版本
         """
         # 1. 分析当前上下文
         context = self._build_current_context(category, sentiment, protagonist_state, stage_config)
         
-        # 2. 选择基础模板模式
+        # 2. LLM增强事件生成
+        if self.llm_event_generator and random.random() < self.llm_config.get("llm_integration", {}).get("event_generation", {}).get("generation_probability", 0.3):
+            try:
+                # 使用LLM生成上下文化事件
+                event_data = await self.llm_event_generator.generate_contextual_event(context, sentiment)
+                generated_event = event_data["description"]
+                participants = event_data["participants"]
+                base_impact = event_data["impact_score"]
+                
+                self.logger.debug(f"LLM生成事件: {generated_event}")
+                
+            except Exception as e:
+                self.logger.error(f"LLM事件生成失败，回退到传统方法: {e}")
+                # 回退到传统生成方法
+                return await self._generate_traditional_event(category, sentiment, context, stage_config)
+        else:
+            # 传统生成方法
+            return await self._generate_traditional_event(category, sentiment, context, stage_config)
+        
+        # 3. 使用混合影响计算器计算最终影响
+        if self.hybrid_calculator:
+            try:
+                # 创建临时事件对象用于影响计算
+                from models.psychology_models import PsychologicalState
+                current_psychological_state = self._dict_to_psychological_state(protagonist_state)
+                temp_event = self._create_temp_event(generated_event, participants, base_impact)
+                
+                impact_result = await self.hybrid_calculator.calculate_comprehensive_impact(
+                    temp_event, current_psychological_state, context
+                )
+                
+                final_impact = impact_result["total_impact"]
+                
+                self.logger.debug(f"混合影响计算: {base_impact} -> {final_impact:.2f}")
+                
+            except Exception as e:
+                self.logger.error(f"混合影响计算失败: {e}")
+                final_impact = base_impact
+        else:
+            final_impact = base_impact
+        
+        # 4. 应用概率性调整
+        if self.probabilistic_model:
+            try:
+                prob_context = {
+                    "personality": context.get("protagonist_state", {}).get("personality", {}),
+                    "psychological_state": self._dict_to_psychological_state(protagonist_state),
+                    "time_context": {"hour": datetime.now().hour, "is_weekend": datetime.now().weekday() >= 5},
+                    "social_context": {"group_size": len(participants), "social_support": 0.5}
+                }
+                
+                final_impact = self.probabilistic_model.apply_normal_variation(final_impact)
+                final_impact = self.probabilistic_model.apply_individual_variance(
+                    final_impact, prob_context.get("personality", {}))
+                
+                self.logger.debug(f"概率性调整后影响: {final_impact:.2f}")
+                
+            except Exception as e:
+                self.logger.error(f"概率性调整失败: {e}")
+        
+        # 5. 记录生成历史
+        self.event_history.append({
+            "event": generated_event,
+            "category": category,
+            "sentiment": sentiment,
+            "participants": participants,
+            "impact": final_impact,
+            "timestamp": datetime.now(),
+            "llm_enhanced": True
+        })
+        
+        return generated_event, participants, int(final_impact)
+    
+    async def _generate_traditional_event(self, category: str, sentiment: str, 
+                                        context: Dict, stage_config: Dict) -> Tuple[str, List[str], int]:
+        """传统事件生成方法"""
+        # 选择基础模板模式
         base_pattern = self.template_analyzer.select_best_pattern(category, sentiment, context)
         
-        # 3. 发散生成新事件
+        # 发散生成新事件
         if self.ai_client and random.random() < 0.7:  # 70%概率使用AI发散
             generated_event = await self.divergent_generator.generate_from_pattern(
                 base_pattern, context, self.generation_rules
@@ -181,23 +287,78 @@ class EventGenerator:
             # 使用规则生成
             generated_event = self._rule_based_generation(base_pattern, context)
         
-        # 4. 逻辑验证和修正
+        # 逻辑验证和修正
         validated_event = self.logic_validator.validate_and_fix(generated_event, context)
         
-        # 5. 提取参与者和计算影响
+        # 提取参与者和计算影响
         participants = self._extract_participants(validated_event)
-        impact_score = self._calculate_impact_score(sentiment, protagonist_state, stage_config)
+        impact_score = self._calculate_impact_score(sentiment, context["protagonist_state"], stage_config)
         
-        # 6. 记录生成历史
+        # 记录生成历史
         self.event_history.append({
             "event": validated_event,
             "pattern": base_pattern,
             "category": category,
             "sentiment": sentiment,
-            "timestamp": datetime.now()
+            "timestamp": datetime.now(),
+            "llm_enhanced": False
         })
         
         return validated_event, participants, impact_score
+    
+    def _dict_to_psychological_state(self, state_dict: Dict):
+        """将字典转换为PsychologicalState对象"""
+        from models.psychology_models import PsychologicalState, EmotionState, DepressionLevel, CognitiveAffectiveState
+        
+        # 创建基础状态
+        emotion = EmotionState.NEUTRAL
+        depression_level = DepressionLevel.HEALTHY
+        
+        # 从字典中提取信息
+        if "emotion" in state_dict:
+            try:
+                emotion = EmotionState(state_dict["emotion"])
+            except:
+                emotion = EmotionState.NEUTRAL
+        
+        if "depression_level" in state_dict:
+            try:
+                if isinstance(state_dict["depression_level"], str):
+                    depression_level = getattr(DepressionLevel, state_dict["depression_level"])
+                else:
+                    depression_level = DepressionLevel(state_dict["depression_level"])
+            except:
+                depression_level = DepressionLevel.HEALTHY
+        
+        # 创建CAD状态
+        cad_state = CognitiveAffectiveState()
+        if "cad_state" in state_dict:
+            cad_dict = state_dict["cad_state"]
+            if "affective_tone" in cad_dict:
+                cad_state.affective_tone = cad_dict["affective_tone"]
+            # 可以添加更多CAD状态字段的转换
+        
+        return PsychologicalState(
+            emotion=emotion,
+            depression_level=depression_level,
+            stress_level=state_dict.get("stress_level", 5),
+            self_esteem=state_dict.get("self_esteem", 5),
+            social_connection=state_dict.get("social_connection", 5),
+            academic_pressure=state_dict.get("academic_pressure", 5),
+            cad_state=cad_state
+        )
+    
+    def _create_temp_event(self, description: str, participants: List[str], impact_score: int):
+        """创建临时事件对象"""
+        from models.psychology_models import LifeEvent, EventType
+        
+        return LifeEvent(
+            event_type=EventType.ACADEMIC_FAILURE,  # 默认类型
+            description=description,
+            impact_score=impact_score,
+            timestamp=datetime.now().isoformat(),
+            participants=participants
+        )
     
     def _build_current_context(self, category: str, sentiment: str, state: Dict, stage_config: Dict) -> Dict:
         """构建当前生成上下文"""

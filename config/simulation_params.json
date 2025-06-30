@@ -1,0 +1,21 @@
+{
+  "description": "心理健康模拟基础参数配置",
+  "simulation": {
+    "simulation_days": 2,
+    "events_per_day": 3,
+    "simulation_speed": 1,
+    "depression_development_stages": 5,
+    "interaction_frequency": 3
+  },
+  "logging": {
+    "log_level": "INFO",
+    "save_daily_states": true,
+    "enable_debug_mode": false
+  },
+  "recovery": {
+    "improvement_threshold": 7.0,
+    "alliance_threshold": 6.0,
+    "evaluation_interval": 5,
+    "deterioration_threshold": 3.0
+  }
+} 

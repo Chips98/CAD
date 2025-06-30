@@ -1,0 +1,84 @@
+graph TB
+    subgraph "用户界面层"
+        A[main.py<br/>主程序界面] 
+        B[start_therapy_from_logs.py<br/>心理咨询界面]
+        C[Rich Terminal UI<br/>交互界面]
+    end
+    
+    subgraph "业务逻辑层"
+        D[SimulationEngine<br/>模拟引擎]
+        E[TherapySessionManager<br/>心理咨询管理器]
+    end
+    
+    subgraph "核心组件层"
+        F[EventGenerator<br/>事件生成器]
+        G[AI Client Factory<br/>AI客户端工厂]
+        H[Agent System<br/>智能体系统]
+    end
+    
+    subgraph "AI集成层"
+        I[GeminiClient<br/>Gemini客户端]
+        J[DeepSeekClient<br/>DeepSeek客户端]
+    end
+    
+    subgraph "智能体层"
+        K[StudentAgent<br/>学生智能体]
+        L[FamilyAgents<br/>家庭智能体]
+        M[SchoolAgents<br/>学校智能体]
+        N[TherapistAgent<br/>心理咨询师]
+    end
+    
+    subgraph "数据模型层"
+        O[Psychology Models<br/>心理学模型]
+        P[Configuration System<br/>配置系统]
+        Q[Data Storage<br/>数据存储]
+    end
+    
+    subgraph "外部服务"
+        R[Google Gemini API]
+        S[DeepSeek API]
+    end
+    
+    A --> D
+    A --> E
+    B --> E
+    A --> C
+    B --> C
+    
+    D --> F
+    D --> G
+    D --> H
+    E --> G
+    E --> H
+    
+    F --> G
+    G --> I
+    G --> J
+    H --> K
+    H --> L
+    H --> M
+    H --> N
+    
+    I --> R
+    J --> S
+    
+    K --> O
+    L --> O
+    M --> O
+    N --> O
+    
+    D --> P
+    E --> P
+    D --> Q
+    E --> Q
+    
+    style A fill:#e1f5fe
+    style B fill:#e1f5fe
+    style D fill:#f3e5f5
+    style E fill:#f3e5f5
+    style F fill:#e8f5e8
+    style G fill:#e8f5e8
+    style H fill:#e8f5e8
+    style O fill:#fff3e0
+    style P fill:#fff3e0
+    style Q fill:#fff3e0

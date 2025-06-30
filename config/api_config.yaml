@@ -1,0 +1,70 @@
+# AI API配置文件
+# 此文件配置各种AI模型提供商的API设置
+
+# 默认使用的AI提供商
+# 可选值: "deepseek", "gemini", "qwen"
+# 当有多个可用提供商时，系统会优先使用此设置
+default_provider: "deepseek"
+
+# AI提供商配置
+providers:
+  # Google Gemini配置
+  gemini:
+    # API密钥（从Google AI Studio获取）
+    # 需要到 https://makersuite.google.com/app/apikey 申请
+    api_key: "your_gemini_api_key_here"
+    
+    # 使用的模型名称
+    # 常用选项: "gemini-pro", "gemini-pro-vision"
+    model: "gemini-pro"
+    
+    # 是否启用此提供商
+    # 设为false可临时禁用，不影响配置
+    enabled: true
+
+  # DeepSeek配置
+  deepseek:
+    # API密钥（从DeepSeek官网获取）
+    # 需要到 https://platform.deepseek.com/api_keys 申请
+    api_key: "sk-83385d61b4ce4b74aa5f726f62444c5b"
+    
+    # API基础URL
+    # 通常不需要修改，除非使用代理或自建服务
+    base_url: "https://api.deepseek.com"
+    
+    # 使用的模型名称
+    # 推荐: "deepseek-chat" (最新对话模型)
+    model: "deepseek-chat"
+    
+    # 是否启用此提供商
+    enabled: true
+
+  # 阿里云通义千问配置
+  qwen:
+    # API密钥（从阿里云DashScope获取）
+    # 需要到 https://dashscope.console.aliyun.com/ 申请
+    api_key: "sk-bdf466c95c6140b38a3d0766ae0765bb"
+    
+    # API基础URL（兼容OpenAI格式）
+    # 通常不需要修改
+    base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
+    
+    # 使用的模型名称
+    # 可选: "qwen-turbo-latest", "qwen-plus-latest", "qwen-max-latest"
+    # 建议: qwen-turbo-latest (速度快，成本低)
+    model: "qwen-turbo-latest"
+    
+    # 是否启用此提供商
+    enabled: true
+
+# API调用超时时间（秒）
+# 建议范围: 30-60秒
+# 较短的超时可能导致长回答被截断
+# 较长的超时可能导致程序响应慢
+timeout: 30
+
+# 最大重试次数
+# 当API调用失败时的重试次数
+# 建议范围: 2-5次
+# 过多重试可能导致延迟过长
+max_retries: 3 

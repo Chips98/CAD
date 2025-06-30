@@ -1,0 +1,538 @@
+# AI-AI对话治疗专用配置
+# 此文件针对AI治疗师与AI患者的自动化对话场景进行优化
+
+description: "AI-AI对话治疗专用配置"
+
+# 治疗有效性参数（AI-AI优化）
+therapy_effectiveness:
+  description: "治疗有效性配置参数（AI-AI优化）"
+  
+  # 基础改善因子
+  # 建议范围: 0.3-0.6
+  # 物理意义: AI-AI场景的基础治疗效果
+  # 比人类治疗师略低，体现AI的局限性
+  base_improvement_factor: 0.4
+  
+  # 单轮最大改善幅度
+  # 建议范围: 0.4-0.8
+  # 物理意义: AI治疗师单次对话能产生的最大改善
+  # 相对保守，避免过于理想化的结果
+  max_improvement_per_turn: 0.6
+  
+  # 单轮最小改善幅度
+  # 建议范围: 0.05-0.2
+  # 物理意义: AI治疗师的最低保障效果
+  # 体现AI的稳定性和一致性
+  min_improvement_per_turn: 0.1
+  
+  # 治疗技术权重
+  # 建议范围: 0.2-0.5
+  # 物理意义: AI治疗师技术运用的重要性
+  # 较低值体现AI技术应用的机械性
+  technique_weight: 0.3
+  
+  # 患者开放性权重
+  # 建议范围: 0.3-0.6
+  # 物理意义: AI患者配合度对疗效的影响
+  # 较高值因为AI患者更理性和可预测
+  openness_weight: 0.4
+  
+  # 治疗联盟权重
+  # 建议范围: 0.2-0.5
+  # 物理意义: AI间关系建立的重要性
+  # 中等权重，AI间关系相对简单
+  connection_weight: 0.3
+
+# CAD认知模型状态变化参数（AI-AI调整）
+cad_state_changes:
+  description: "CAD认知模型状态变化参数（AI-AI调整）"
+  
+  # 核心信念变化（AI-AI场景调整）
+  core_beliefs:
+    # 自我信念变化率
+    # 建议范围: 0.08-0.18
+    # 物理意义: AI模拟的自我概念改变速度
+    # 较低值体现深层信念的稳定性
+    self_belief_change_rate: 0.12
+    
+    # 世界观变化率
+    # 建议范围: 0.06-0.15
+    # 物理意义: AI患者世界观调整的速度
+    # 最保守的变化，最难改变
+    world_belief_change_rate: 0.10
+    
+    # 未来观变化率
+    # 建议范围: 0.1-0.2
+    # 物理意义: AI患者对未来看法的调整速度
+    # 相对较快，希望重建比较容易
+    future_belief_change_rate: 0.15
+    
+    # 稳定性因子
+    # 建议范围: 0.85-0.95
+    # 物理意义: AI模拟的核心信念稳定性
+    # 较高值使变化更稳定
+    stability_factor: 0.88
+  
+  # 认知处理（AI-AI场景）
+  cognitive_processing:
+    # 沉思减少率
+    # 建议范围: 0.15-0.25
+    # 物理意义: AI治疗师对AI患者沉思模式的改善效果
+    # 中等水平，体现AI理性分析的优势
+    rumination_reduction_rate: 0.18
+    
+    # 认知扭曲减少率
+    # 建议范围: 0.1-0.2
+    # 物理意义: AI纠正认知错误的能力
+    # 适中，AI逻辑性强但缺乏人类洞察
+    distortions_reduction_rate: 0.14
+    
+    # 积极重构奖励
+    # 建议范围: 0.05-0.12
+    # 物理意义: AI成功重构思维的额外收益
+    # 较低值，AI缺乏创造性洞察
+    positive_reframe_bonus: 0.08
+  
+  # 行为模式（AI-AI场景）
+  behavioral_patterns:
+    # 社交退缩改变率
+    # 建议范围: 0.08-0.18
+    # 物理意义: AI治疗师改善社交行为的效果
+    # 中等水平，AI难以完全理解社交复杂性
+    social_withdrawal_change_rate: 0.12
+    
+    # 意志缺失改变率
+    # 建议范围: 0.06-0.15
+    # 物理意义: AI激发动机的能力
+    # 较低值，动机激发需要深层人类理解
+    avolition_change_rate: 0.10
+    
+    # 行为激活奖励
+    # 建议范围: 0.04-0.1
+    # 物理意义: AI指导行为改变的额外收益
+    # 较低值，AI行为指导相对机械
+    activation_bonus: 0.06
+  
+  # 情感基调变化率（AI-AI场景）
+  # 建议范围: 0.15-0.3
+  # 物理意义: AI-AI互动对情感状态的影响
+  # 中等水平，AI情感理解有限
+  affective_tone_change_rate: 0.20
+  
+  # 治疗响应修正因子（AI-AI场景）
+  # 建议范围: 0.8-1.2
+  # 物理意义: AI治疗情境的状态变化系数
+  # 接近1.0，体现AI的中性特点
+  therapy_response_modifier: 1.0
+  
+  # 修正因子
+  # 建议范围: 0.94-0.98
+  # 物理意义: AI的稳定性修正因子
+  # 较高值体现AI的一致性
+  correction_factor: 0.96
+
+# 抑郁程度发展设置（AI-AI自动化）
+depression_level_progression:
+  description: "抑郁程度变化设置（AI-AI自动化）"
+  
+  # 改善阈值
+  # 建议范围: 2.5-4.0
+  # 物理意义: AI-AI场景的等级晋升要求
+  # 中等要求，平衡进展和现实性
+  improvement_threshold: 3.0
+  
+  # 恶化阈值
+  # 建议范围: 1.5-2.5
+  # 物理意义: AI-AI场景的等级降级阈值
+  # 较低值，对恶化更敏感
+  deterioration_threshold: 1.8
+  
+  # 等级变化延迟轮数
+  # 建议范围: 5-8轮
+  # 物理意义: AI场景下的等级变化延迟
+  # 较长延迟，避免过于频繁的变化
+  level_change_delay_turns: 6
+  
+  # 恢复加速因子
+  # 建议范围: 1.0-1.3
+  # 物理意义: AI-AI场景的恢复加速效应
+  # 轻微加速，体现持续治疗的积累效应
+  recovery_acceleration_factor: 1.1
+
+# 督导功能设置（AI-AI场景）
+supervision_settings:
+  description: "督导功能设置（AI-AI场景）"
+  
+  # 督导间隔（轮数）
+  # 建议范围: 4-6轮
+  # 物理意义: AI-AI场景的督导频率
+  # 较长间隔，AI更加自主
+  supervision_interval: 5
+  
+  # 评估间隔（轮数）
+  # 建议范围: 2-4轮
+  # 物理意义: AI治疗效果评估频率
+  # 中等频率，保持监控
+  evaluation_interval: 2
+  
+  # 风险阈值
+  # 建议范围: 0.5-0.8
+  # 物理意义: AI场景的风险预警阈值
+  # 中等敏感度
+  risk_threshold: 0.6
+  
+  # 进展阈值
+  # 建议范围: 0.2-0.4
+  # 物理意义: AI场景的最低进展要求
+  # 较低要求，AI治疗相对保守
+  progress_threshold: 0.25
+  
+  # 督导深度
+  # 建议: "moderate"
+  # 物理意义: AI场景的督导详细程度
+  # 中等深度，平衡效率和质量
+  supervision_depth: "moderate"
+
+# AI-AI对话专用设置
+conversation_settings:
+  description: "AI-AI对话专用设置"
+  
+  # 对话历史长度
+  # 建议范围: 10-20轮
+  # 物理意义: AI处理的对话历史长度
+  # 适中长度，平衡上下文和效率
+  conversation_history_length: 15
+  
+  # 最大显示事件数
+  # 建议范围: 10-20个
+  # 物理意义: 为AI提供的背景事件数量
+  # 适量信息，避免过载
+  max_events_to_show: 15
+  
+  # 启用督导
+  # 建议: true
+  # 物理意义: AI场景是否需要督导
+  enable_supervision: true
+  
+  # 督导分析深度
+  # 建议: "MODERATE"
+  # 物理意义: AI督导的详细程度
+  supervision_analysis_depth: "MODERATE"
+  
+  # 最大对话轮数
+  # 建议范围: 30-80轮
+  # 物理意义: AI-AI对话的最大长度限制
+  # 防止无限对话，设定合理终点
+  max_turns: 50
+  
+  # 自动保存间隔
+  # 建议范围: 3-8轮
+  # 物理意义: 自动保存对话记录的频率
+  # 防止数据丢失
+  auto_save_interval: 5
+
+# AI患者行为模式
+ai_patient_behavior:
+  description: "AI患者行为模式"
+  
+  # 开放性发展率
+  # 建议范围: 0.1-0.25
+  # 物理意义: AI患者随时间增加的开放程度
+  # 模拟患者逐渐信任治疗师的过程
+  openness_progression_rate: 0.15
+  
+  # 阻抗衰减率
+  # 建议范围: 0.05-0.15
+  # 物理意义: AI患者阻抗随时间减少的速度
+  # 模拟阻抗自然消解过程
+  resistance_decay_rate: 0.10
+  
+  # 情绪波动性
+  # 建议范围: 0.2-0.5
+  # 物理意义: AI患者情绪状态的变化幅度
+  # 模拟情绪不稳定但不过分
+  emotional_volatility: 0.3
+  
+  # 洞察发展率
+  # 建议范围: 0.08-0.2
+  # 物理意义: AI患者获得自我洞察的速度
+  # 模拟逐渐的自我认识过程
+  insight_development_rate: 0.12
+
+# AI治疗师行为模式
+ai_therapist_behavior:
+  description: "AI治疗师行为模式"
+  
+  # 技术适应率
+  # 建议范围: 0.15-0.3
+  # 物理意义: AI治疗师调整治疗技术的速度
+  # 模拟学习和适应患者的过程
+  technique_adaptation_rate: 0.2
+  
+  # 共情一致性
+  # 建议范围: 0.8-0.95
+  # 物理意义: AI治疗师共情表达的稳定性
+  # 较高值体现AI的一致性优势
+  empathy_consistency: 0.9
+  
+  # 干预时机优化
+  # 建议范围: 0.6-0.9
+  # 物理意义: AI选择干预时机的准确性
+  # 较高值体现AI的分析能力
+  intervention_timing_optimization: 0.8
+  
+  # 进展监控频率
+  # 建议范围: 2-5轮
+  # 物理意义: AI治疗师评估患者进展的频率
+  # 适度监控，保持治疗敏感性
+  progress_monitoring_frequency: 3
+
+# 情绪状态动态变化（AI优化）
+emotional_state_dynamics:
+  description: "情绪状态动态变化（AI优化）"
+  
+  # 压力减少率
+  # 建议范围: 0.25-0.5
+  # 物理意义: AI治疗对压力的缓解效果
+  # 中等效果，AI理性分析有助减压
+  stress_reduction_rate: 0.35
+  
+  # 自尊改善率
+  # 建议范围: 0.2-0.4
+  # 物理意义: AI治疗对自尊的提升效果
+  # 适中效果，AI缺乏深层情感支持
+  self_esteem_improvement_rate: 0.25
+  
+  # 社交联系增强率
+  # 建议范围: 0.15-0.3
+  # 物理意义: AI治疗对社交能力的改善
+  # 较低效果，AI难以完全理解社交复杂性
+  social_connection_enhancement_rate: 0.20
+  
+  # 学业压力缓解率
+  # 建议范围: 0.1-0.25
+  # 物理意义: AI对学业压力的处理效果
+  # 适中效果，AI能提供结构化建议
+  academic_pressure_relief_rate: 0.15
+
+# 不同治疗技术的效果权重（AI-AI场景）
+therapy_techniques_effectiveness:
+  description: "不同治疗技术的效果权重（AI-AI场景）"
+  
+  # 认知重构技术
+  # 建议范围: 0.6-0.8
+  # 物理意义: AI-AI场景下认知重构的效果
+  # 较高值，AI逻辑分析能力强
+  cognitive_restructuring: 0.7
+  
+  # 情感验证技术
+  # 建议范围: 0.7-0.9
+  # 物理意义: AI情感验证的效果
+  # 较高值，AI能提供一致的支持
+  emotional_validation: 0.8
+  
+  # 行为激活技术
+  # 建议范围: 0.5-0.7
+  # 物理意义: AI行为指导的效果
+  # 中等值，AI能提供结构化指导
+  behavioral_activation: 0.6
+  
+  # 正念技术
+  # 建议范围: 0.4-0.6
+  # 物理意义: AI正念指导的效果
+  # 中等偏低，正念需要深层体验
+  mindfulness_techniques: 0.5
+  
+  # 解决导向治疗
+  # 建议范围: 0.5-0.7
+  # 物理意义: AI问题解决的效果
+  # 中等值，AI逻辑性强但缺乏创造性
+  solution_focused_therapy: 0.6
+  
+  # 心理教育
+  # 建议范围: 0.3-0.5
+  # 物理意义: AI心理教育的效果
+  # 较低值，AI缺乏生动的教育能力
+  psychoeducation: 0.4
+
+# 患者回应分析权重（AI-AI优化）
+patient_response_analysis:
+  description: "患者回应分析权重（AI-AI优化）"
+  
+  # 积极指标权重
+  positive_indicators_weight:
+    # 感谢表达
+    # 建议范围: 0.6-0.8
+    # 物理意义: AI患者感谢的价值权重
+    # 中高值，体现礼貌性表达
+    gratitude_expressions: 0.7
+    
+    # 洞察陈述
+    # 建议范围: 0.7-0.9
+    # 物理意义: AI患者洞察的价值权重
+    # 高值，AI能产生清晰的逻辑洞察
+    insight_statements: 0.8
+    
+    # 改变承诺
+    # 建议范围: 0.5-0.7
+    # 物理意义: AI患者承诺的价值权重
+    # 中等值，AI承诺相对理性
+    commitment_to_change: 0.6
+    
+    # 情感开放
+    # 建议范围: 0.4-0.6
+    # 物理意义: AI患者情感表达的价值
+    # 中等值，AI情感表达相对有限
+    emotional_openness: 0.5
+  
+  # 消极指标权重（负值）
+  negative_indicators_weight:
+    # 阻抗表达
+    # 建议范围: -0.3到-0.5
+    # 物理意义: AI患者阻抗的负面影响
+    # 中等负面影响
+    resistance_expressions: -0.4
+    
+    # 绝望陈述
+    # 建议范围: -0.5到-0.7
+    # 物理意义: AI患者绝望的负面影响
+    # 较高负面影响
+    hopelessness_statements: -0.6
+    
+    # 退缩行为
+    # 建议范围: -0.2到-0.4
+    # 物理意义: AI患者退缩的负面影响
+    # 中等偏低负面影响
+    withdrawal_behaviors: -0.3
+    
+    # 治疗贬低
+    # 建议范围: -0.4到-0.6
+    # 物理意义: AI患者贬低治疗的负面影响
+    # 中等负面影响
+    therapy_devaluation: -0.5
+
+# 恢复里程碑设置（AI-AI场景）
+recovery_milestones:
+  description: "恢复里程碑设置（AI-AI场景）"
+  
+  # 早期阶段
+  early_stage:
+    # CAD改善阈值
+    # 建议范围: 0.6-1.2
+    # 物理意义: AI-AI场景早期恢复要求
+    # 适中要求
+    cad_improvement_threshold: 0.8
+    
+    # 所需会话数
+    # 建议范围: 3-6次
+    # 物理意义: AI场景达到早期里程碑的会话数
+    session_count: 4
+  
+  # 中期阶段
+  middle_stage:
+    # CAD改善阈值
+    # 建议范围: 1.5-3.0
+    # 物理意义: AI-AI场景中期恢复要求
+    cad_improvement_threshold: 2.0
+    
+    # 所需会话数
+    # 建议范围: 8-15次
+    # 物理意义: AI场景中期治疗需求
+    session_count: 10
+  
+  # 高级阶段
+  advanced_stage:
+    # CAD改善阈值
+    # 建议范围: 3.0-5.0
+    # 物理意义: AI-AI场景高级恢复要求
+    cad_improvement_threshold: 3.5
+    
+    # 所需会话数
+    # 建议范围: 15-25次
+    # 物理意义: AI场景高级恢复需求
+    session_count: 18
+
+# 治疗阈值设定（AI-AI场景）
+therapy_thresholds:
+  # 突破阈值
+  # 建议范围: 6.0-8.5
+  # 物理意义: AI-AI场景治疗突破的CAD阈值
+  breakthrough_threshold: 7.0
+  
+  # 阻抗阈值
+  # 建议范围: 3.0-5.0
+  # 物理意义: AI-AI场景阻抗判定阈值
+  resistance_threshold: 3.5
+  
+  # 联盟建立阈值
+  # 建议范围: 4.5-7.0
+  # 物理意义: AI-AI场景联盟建立标准
+  alliance_building_threshold: 5.5
+  
+  # 危机干预阈值
+  # 建议范围: 2.0-3.5
+  # 物理意义: AI-AI场景危机干预触发点
+  crisis_intervention_threshold: 2.5
+
+# 状态边界设定（AI-AI场景）
+state_bounds:
+  # 最小CAD值
+  # 建议范围: -15.0到-5.0
+  # 物理意义: CAD状态的最低可能值
+  min_cad_value: -10.0
+  
+  # 最大CAD值
+  # 建议范围: 5.0到15.0
+  # 物理意义: CAD状态的最高可能值
+  max_cad_value: 10.0
+  
+  # 最小抑郁改善
+  # 建议范围: 0.05-0.2
+  # 物理意义: AI-AI场景单次会话最小改善
+  min_depression_improvement: 0.1
+  
+  # 每次会话最大抑郁变化
+  # 建议范围: 0.5-1.2
+  # 物理意义: AI-AI场景单次会话最大影响
+  max_depression_change_per_session: 0.8
+
+# 自动化治疗专用设置
+automation_settings:
+  description: "自动化治疗专用设置"
+  
+  # 自动终止条件
+  auto_termination_conditions:
+    # 达到最大轮数
+    # 建议: true
+    # 物理意义: 是否在达到最大轮数时自动终止
+    max_turns_reached: true
+    
+    # 显著改善
+    # 建议: true
+    # 物理意义: 是否在显著改善时自动终止
+    significant_improvement: true
+    
+    # 检测到恶化
+    # 建议: true
+    # 物理意义: 是否在恶化时自动终止
+    deterioration_detected: true
+    
+    # 检测到平台期
+    # 建议: true
+    # 物理意义: 是否在进展停滞时自动终止
+    plateau_detected: true
+  
+  # 进展追踪频率
+  # 建议范围: 2-5轮
+  # 物理意义: 多久评估一次治疗进展
+  progress_tracking_frequency: 3
+  
+  # 效果评估间隔
+  # 建议范围: 4-8轮
+  # 物理意义: 多久进行一次深度效果评估
+  effectiveness_evaluation_interval: 5
+  
+  # 报告生成频率
+  # 建议范围: 8-15轮
+  # 物理意义: 多久生成一次治疗报告
+  report_generation_frequency: 10 

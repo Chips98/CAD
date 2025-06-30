@@ -1,0 +1,447 @@
+{% extends "base.html" %}
+
+{% block title %}数据分析 - 抑郁症模拟系统{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- 页面标题 -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card shadow">
+                <div class="card-header bg-info text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-chart-bar"></i> 模拟数据分析
+                    </h4>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 模拟记录列表 -->
+    <div class="row">
+        <div class="col-md-4">
+            <div class="card shadow">
+                <div class="card-header bg-secondary text-white">
+                    <h6 class="mb-0">
+                        <i class="fas fa-history"></i> 历史模拟记录
+                    </h6>
+                </div>
+                <div class="card-body p-0">
+                    <div class="list-group list-group-flush" id="simulationList">
+                        {% for sim in simulation_logs %}
+                        <a href="#" class="list-group-item list-group-item-action simulation-item" 
+                           data-sim-id="{{ sim.id }}">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1">{{ sim.name or sim.id }}</h6>
+                                <small>{{ sim.date }}</small>
+                            </div>
+                            <p class="mb-1">
+                                <span class="badge badge-{{ 'success' if sim.status == 'completed' else 'warning' }}">
+                                    {{ sim.status }}
+                                </span>
+                            </p>
+                            <small>{{ sim.description }}</small>
+                        </a>
+                        {% endfor %}
+                        
+                        {% if not simulation_logs %}
+                        <div class="p-3 text-center text-muted">
+                            <i class="fas fa-inbox fa-2x mb-2"></i>
+                            <p>暂无模拟记录</p>
+                            <a href="/simulation" class="btn btn-primary btn-sm">开始新模拟</a>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 分析详情 -->
+        <div class="col-md-8">
+            <div id="analysisContent">
+                <!-- 默认显示 -->
+                <div class="card shadow">
+                    <div class="card-body text-center">
+                        <i class="fas fa-chart-line fa-4x text-muted mb-3"></i>
+                        <h5>选择一个模拟记录查看分析结果</h5>
+                        <p class="text-muted">从左侧列表中选择要分析的模拟记录</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 分析详情模板 -->
+<div id="analysisTemplate" style="display: none;">
+    <div class="card shadow">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">
+                <i class="fas fa-microscope"></i> 模拟分析报告
+                <small class="float-right" id="analysisDate"></small>
+            </h5>
+        </div>
+        <div class="card-body">
+            <!-- 概览统计 -->
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="card bg-info text-white">
+                        <div class="card-body text-center">
+                            <h4 id="totalDays">0</h4>
+                            <small>模拟天数</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-warning text-white">
+                        <div class="card-body text-center">
+                            <h4 id="finalDepressionLevel">未知</h4>
+                            <small>最终抑郁程度</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-success text-white">
+                        <div class="card-body text-center">
+                            <h4 id="totalEvents">0</h4>
+                            <small>总事件数</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-danger text-white">
+                        <div class="card-body text-center">
+                            <h4 id="criticalEvents">0</h4>
+                            <small>关键事件数</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 心理状态变化图表 -->
+            <div class="row mb-4">
+                <div class="col-md-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h6 class="mb-0">心理状态变化趋势</h6>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="depressionChart" width="400" height="200"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 关键事件时间线 -->
+            <div class="row mb-4">
+                <div class="col-md-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h6 class="mb-0">关键事件时间线</h6>
+                        </div>
+                        <div class="card-body" id="eventsTimeline">
+                            <!-- 动态填充 -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 认知情感维度分析 -->
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h6 class="mb-0">认知维度变化</h6>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="cognitiveChart" width="300" height="200"></canvas>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h6 class="mb-0">情感维度变化</h6>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="affectiveChart" width="300" height="200"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 治疗建议 -->
+            <div class="row">
+                <div class="col-md-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h6 class="mb-0">
+                                <i class="fas fa-lightbulb"></i> 治疗建议
+                            </h6>
+                        </div>
+                        <div class="card-body" id="treatmentSuggestions">
+                            <!-- 动态填充 -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- JavaScript -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    let currentSimulationId = null;
+    
+    // 模拟记录选择
+    document.querySelectorAll('.simulation-item').forEach(item => {
+        item.addEventListener('click', function(e) {
+            e.preventDefault();
+            selectSimulation(this.dataset.simId);
+        });
+    });
+    
+    // 选择模拟记录
+    function selectSimulation(simId) {
+        currentSimulationId = simId;
+        
+        // 更新选中状态
+        document.querySelectorAll('.simulation-item').forEach(item => {
+            item.classList.remove('active');
+        });
+        document.querySelector(`[data-sim-id="${simId}"]`).classList.add('active');
+        
+        // 加载分析数据
+        loadAnalysis(simId);
+    }
+    
+    // 加载分析数据
+    function loadAnalysis(simId) {
+        fetch(`/api/analysis/${simId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    displayAnalysis(data.analysis);
+                } else {
+                    showError(data.error || '分析数据加载失败');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showError('加载分析数据失败');
+            });
+    }
+    
+    // 显示分析结果
+    function displayAnalysis(analysis) {
+        const template = document.getElementById('analysisTemplate');
+        const content = document.getElementById('analysisContent');
+        
+        // 复制模板
+        content.innerHTML = template.innerHTML;
+        
+        // 填充基本信息
+        document.getElementById('analysisDate').textContent = analysis.simulation_date || '未知日期';
+        document.getElementById('totalDays').textContent = analysis.total_days || 0;
+        document.getElementById('finalDepressionLevel').textContent = analysis.final_depression_level || '未知';
+        document.getElementById('totalEvents').textContent = analysis.total_events || 0;
+        document.getElementById('criticalEvents').textContent = analysis.critical_events || 0;
+        
+        // 绘制图表
+        if (analysis.depression_progression) {
+            drawDepressionChart(analysis.depression_progression);
+        }
+        if (analysis.cognitive_data) {
+            drawCognitiveChart(analysis.cognitive_data);
+        }
+        if (analysis.affective_data) {
+            drawAffectiveChart(analysis.affective_data);
+        }
+        
+        // 显示事件时间线
+        if (analysis.key_events) {
+            displayEventsTimeline(analysis.key_events);
+        }
+        
+        // 显示治疗建议
+        if (analysis.treatment_suggestions) {
+            displayTreatmentSuggestions(analysis.treatment_suggestions);
+        }
+    }
+    
+    // 绘制抑郁程度变化图表
+    function drawDepressionChart(data) {
+        const ctx = document.getElementById('depressionChart').getContext('2d');
+        
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: data.days || [],
+                datasets: [{
+                    label: '抑郁程度',
+                    data: data.scores || [],
+                    borderColor: 'rgb(255, 99, 132)',
+                    backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 10
+                    }
+                }
+            }
+        });
+    }
+    
+    // 绘制认知维度图表
+    function drawCognitiveChart(data) {
+        const ctx = document.getElementById('cognitiveChart').getContext('2d');
+        
+        new Chart(ctx, {
+            type: 'radar',
+            data: {
+                labels: data.dimensions || ['认知扭曲', '负性思维', '归因方式', '自我效能'],
+                datasets: [{
+                    label: '认知状态',
+                    data: data.scores || [5, 5, 5, 5],
+                    borderColor: 'rgb(54, 162, 235)',
+                    backgroundColor: 'rgba(54, 162, 235, 0.2)'
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    r: {
+                        beginAtZero: true,
+                        max: 10
+                    }
+                }
+            }
+        });
+    }
+    
+    // 绘制情感维度图表
+    function drawAffectiveChart(data) {
+        const ctx = document.getElementById('affectiveChart').getContext('2d');
+        
+        new Chart(ctx, {
+            type: 'radar',
+            data: {
+                labels: data.dimensions || ['情绪调节', '情感表达', '社交情感', '情绪识别'],
+                datasets: [{
+                    label: '情感状态',
+                    data: data.scores || [5, 5, 5, 5],
+                    borderColor: 'rgb(255, 205, 86)',
+                    backgroundColor: 'rgba(255, 205, 86, 0.2)'
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    r: {
+                        beginAtZero: true,
+                        max: 10
+                    }
+                }
+            }
+        });
+    }
+    
+    // 显示事件时间线
+    function displayEventsTimeline(events) {
+        const timeline = document.getElementById('eventsTimeline');
+        timeline.innerHTML = '';
+        
+        if (events && events.length > 0) {
+            events.forEach(event => {
+                const eventDiv = document.createElement('div');
+                eventDiv.className = 'mb-3 p-3 border-left border-primary';
+                eventDiv.innerHTML = `
+                    <div class="d-flex justify-content-between">
+                        <h6>${event.title || '未知事件'}</h6>
+                        <small class="text-muted">第${event.day || 0}天</small>
+                    </div>
+                    <p class="mb-1">${event.description || '无描述'}</p>
+                    <small class="badge badge-${getImpactBadgeClass(event.impact)}">${event.impact || '中等'}</small>
+                `;
+                timeline.appendChild(eventDiv);
+            });
+        } else {
+            timeline.innerHTML = '<p class="text-muted">暂无关键事件记录</p>';
+        }
+    }
+    
+    // 显示治疗建议
+    function displayTreatmentSuggestions(suggestions) {
+        const container = document.getElementById('treatmentSuggestions');
+        container.innerHTML = '';
+        
+        if (suggestions && suggestions.length > 0) {
+            suggestions.forEach((suggestion, index) => {
+                const suggestionDiv = document.createElement('div');
+                suggestionDiv.className = 'mb-3';
+                suggestionDiv.innerHTML = `
+                    <h6><i class="fas fa-check-circle text-success"></i> 建议 ${index + 1}</h6>
+                    <p>${suggestion.description || '无具体建议'}</p>
+                    <small class="text-muted">优先级: ${suggestion.priority || '中等'}</small>
+                `;
+                container.appendChild(suggestionDiv);
+            });
+        } else {
+            container.innerHTML = `
+                <div class="alert alert-info">
+                    <h6>基于CAD-MD模型的治疗建议：</h6>
+                    <ul>
+                        <li>认知行为治疗：识别和修正负性思维模式</li>
+                        <li>情感调节训练：学习有效的情绪管理技巧</li>
+                        <li>行为激活疗法：增加愉快活动和社交互动</li>
+                        <li>正念冥想练习：提升情绪觉察和接纳能力</li>
+                    </ul>
+                </div>
+            `;
+        }
+    }
+    
+    // 获取影响程度的Badge样式
+    function getImpactBadgeClass(impact) {
+        if (!impact) return 'secondary';
+        
+        switch(impact.toLowerCase()) {
+            case 'high': 
+            case '高': 
+                return 'danger';
+            case 'medium': 
+            case '中': 
+            case '中等':
+                return 'warning';
+            case 'low': 
+            case '低':
+                return 'success';
+            default: 
+                return 'secondary';
+        }
+    }
+    
+    // 显示错误
+    function showError(message) {
+        const content = document.getElementById('analysisContent');
+        content.innerHTML = `
+            <div class="card shadow">
+                <div class="card-body text-center">
+                    <i class="fas fa-exclamation-triangle fa-4x text-warning mb-3"></i>
+                    <h5>加载失败</h5>
+                    <p class="text-muted">${message}</p>
+                    <button class="btn btn-primary" onclick="location.reload()">重新加载</button>
+                </div>
+            </div>
+        `;
+    }
+});
+</script>
+{% endblock %} 
