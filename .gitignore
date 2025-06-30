@@ -39,3 +39,8 @@ logs/
 .DS_Store
 Thumbs.db
 
+#logs
+logs/
+
+#analyze
+analyze/
